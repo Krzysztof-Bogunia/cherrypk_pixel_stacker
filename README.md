@@ -4,7 +4,11 @@ This is my second attempt (first publicly available) at making image stacking pr
 The goal is to use multiple photos of the same object/scene and create image that combines best features of each photo. Right now this program is maximizing local sharpness of each image region by using pixels from photo that has the highest variance (sharpness estimation method) of pixels in that region. Every pixel of every photo has its sharpness estimated and stacking function uses those values as well as quality of image alignment to calculate pixel's coefficients for final image. Resulting image is basically a type of weighted average of input images.  
 
 To get image that has high sharpness for objects that are in different distances from camera user needs to make multiple photos with either moving camera closer and further from target object or change focus settings of camera. It's recommended to use tripod or to hold the camera very still when making series of photos.  
-Arguably the hardest part for the program is to accurately align all images to avoid strange artifacts when blending images like average of 2 different objects, multiple copies of the same object or moving shadows etc. I am still experimenting with making image alignment more accurate but generally the biggest advantage it has over other programs is in my opinion the ability to correct for both camera movement and lens distortion (with various results ...). In other words user is not required to calibrate camera for the program to stack them.
+Arguably the hardest part for the program is to accurately align all images to avoid strange artifacts when blending images like average of 2 different objects, multiple copies of the same object or moving shadows etc. I am still experimenting with making image alignment more accurate but generally the biggest advantage it has over other programs is in my opinion the ability to correct for both camera movement and lens distortion (with various results ...). In other words user is not required to calibrate camera for the program to stack them.  
+
+
+![Stacking overview](./resources/stacking_overview.png "Stacking overview")  
+
 
 # Future development plans:  
 This is mostly hobby project so there isn't any specific timeline when new features will be added. However I plan to work on the following things at some point in time:  
