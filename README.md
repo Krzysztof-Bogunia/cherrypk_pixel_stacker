@@ -6,7 +6,7 @@ The goal is to use multiple photos of the same object/scene and create image tha
 To get image that has high sharpness for objects that are in different distances from camera user needs to make multiple photos with either moving camera closer and further from target object or change focus settings of camera. It's recommended to use tripod or to hold the camera very still when making series of photos.  
 Arguably the hardest part for the program is to accurately align all images to avoid strange artifacts when blending images like average of 2 different objects, multiple copies of the same object or moving shadows etc. I am still experimenting with making image alignment more accurate but generally the biggest advantage it has over other programs is in my opinion the ability to correct for both camera movement and lens distortion (with various results ...). In other words user is not required to calibrate camera for the program to stack them.  
 
-
+At least 2 images are required for stacking. This example shows that final image retains original look and has added sharpness (to regions further away from camera) from next image. Program can try to add more details from input images or retain more look of the reference image, depending on the settings.  
 ![Stacking overview](./resources/stacking_overview.png "Stacking overview")  
 
 
