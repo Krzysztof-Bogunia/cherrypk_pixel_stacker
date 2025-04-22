@@ -11,13 +11,13 @@ At least 2 images are required for stacking. This example shows that final image
 
 
 # Future development plans:  
-This is mostly hobby project so there isn't any specific timeline when new features will be added. However I plan to work on the following things at some point in time:  
+This is mostly hobby project so there is no any specific timeline when new features will be added. However I plan to work on the following things at some point in time:  
 
 --make stacked images more seamless (which can be improved by matching color/brightness of input images?)  
 --further improving quality of alignment  
---more robust algorithms that require specifying less parameters by user  
+--more robust algorithms that also require specifying less parameters by user  
 --performance and memory improvements  
---support more image formats  
+--support for more image formats  
 --graphical user interface  
   
   
@@ -83,10 +83,10 @@ parameter | default value (range min; max) | description
 "n_points" | 8000 (30; N)| initial number of points to detect and compare between images for aligning/undistortion. Higher values can improve quality, but sometimes less is better (quality over quantity).
 "ratio" | 0.7 (0.1; 1.0)| how many points to keep for aligning/undistortion.. Smaller values filter out more points and can improve quality, but it's better to not change this parameter to much or there wil be no points to calculate alignment/undistortion. 
 "checkArea" | 0.75 (0.1; 1.0)| image comparison area (from center to borders). It's used internally for calculating quality of aligned images. When input photos are very similar (made with camera on tripod) then higher values can be used to attempt more alignment, but for photos from slightly moving or shaky camera try lower values.
-"splitAlignPartsVertical" | 8 (0; N)| how many times to split (vertically) image for separate alignment of each part. Higher values can result in more accurate alignment, but with more splits on each image that may be visible in final stack.  
-"splitAlignPartsHorizontal" | 8 (0; N)| how many times to split (horizontally) image for separate alignment of each part. Higher values can result in more accurate alignment, but with more splits on each image that may be visible in final stack.  
+"splitAlignPartsVertical" | 8 (0; N)| how many times to split (vertically) image for separate alignment of each part. Higher values can result in more accurate alignment, but with more splits on each image borders may be visible in final stack.  
+"splitAlignPartsHorizontal" | 8 (0; N)| how many times to split (horizontally) image for separate alignment of each part. Higher values can result in more accurate alignment, but with more splits on each image borders may be visible in final stack.  
 "baseImgCoef" | 0.4 (0.0; 1.0)| added minimum value of base image's coefficient for stacking. Higher values give less changed resulting image.  
-"coef_sharpness" | 1.5 (0.0; N)| local sharpness coefficient's weight for stacking. Higher values should give sharper image.
+"coef_sharpness" | 1.5 (0.0; N)| local sharpness coefficient's weight for stacking. Higher values give sharper image.
 "coef_similarity" | 1.0 (0.0; N)| local similarity (to base image) coefficient's weight for stacking. Higher values give less changed resulting image.  
 "upscale" | 1.0 (1.0; N)| if value is greater than 1.0 then final image resolution will be upscaled (upscaling input images and stacking them). Higher values increase details, but memory usage for processing and storage is also increased.
 
@@ -105,7 +105,7 @@ This project relies on external software components for some functionality.
 [opencv](https://github.com/opencv/opencv) with Apache License 2.0. Used for many image processing operations including loading/saving images, alignment, calibration and undistortion  
 
 If you are building project from source then you are also required to have Boost and Eigen packages installed because they are required by some dependencies.  
-OpenMP is optional dependency that provides multithreading support.  
+OpenMP is additional dependency which provides multithreading support.  
 
 
 # Building from source:  
