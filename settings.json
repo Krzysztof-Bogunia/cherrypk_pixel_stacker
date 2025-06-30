@@ -1,5 +1,6 @@
 {
     //general params
+    "task": "stack", //what is the program task //{stack, simple_stack, align, calibrate_color}
     "interpolation": 4, //which interpolation algorithm to use (1:Linear, 2:Cubic, 3:Area, 4:Lanchos) //4
     "erosion_size": 3, //size for expanding mask of bad pixels //1
     "radicalChangeRatio": 1.3, //mask/prevent values that are changed at least radicalChangeRatio times compared to initial values //1.3
@@ -9,23 +10,30 @@
     "base_index": 0, //index of base reference image //0
     "maxIter": 30, //max number of undistortion iterations //30
     "n_points": 8000, //initial number of points to detect and compare between images //8000
-    "ratio": 0.7, //how many points to keep for undistortion //0.7
+    "ratio": 0.65, //how many points to keep for undistortion //0.7
     "warpAlign": true, //apply warp perspective operation to align images //true
     "warpIter": 40, //max number of secondary align image iterations //40
     "splitAlignPartsVertical": 8, //how many times to split image (vertically) to align each part independently //8
     "splitAlignPartsHorizontal": 8, //how many times to split image (horizontally) to align each part independently //8
-    "alpha": 0.95, //how many points to keep for alignment //1.0
-    "checkArea": 0.75, //image comparison area //0.75
+    "alpha": 0.90, //how many points to keep for alignment //1.0
+    "checkArea": 0.85, //image comparison area //0.75
     "alignCenter": false, //keep center of images the same //false
 
     //Image Stacking Params
     "upscale": 1.0, //if value is greater than 1.0 then final image resolution will be upscaled (by upscaling input images and merging them) //1.0
-    "blur_size": 4, //adds smoothing to coefficients (increase it to hide switching pixel regions between images)
+    "blur_size": 5, //adds smoothing to coefficients (increase it to hide switching pixel regions between images)
     "baseImgCoef": 0.4, //coefficient value of base image (by default first img is base) //0.4
     "coef_sharpness": 1.5, //local sharpness weight for total image coeffs //1.0
     "coef_similarity": 1.0, //local similarity to base img weight for total image coeffs //1.0
     "patternN": 200, //number of sharpness checking regions (total=patternN*patternN) //200
     "patternSize": 5, //size of each sharpness checking region //3
     "minImgCoef": 0.0, //minimum value to add to each image's coefficients //0.0
-    "comparison_scale": 0.25 //pixel ratio - decrease resolution for calculating some parameters //0.25
+    "comparison_scale": 0.25, //pixel ratio - decrease resolution for calculating some parameters //0.25
+
+    //Color transfer/calibration params
+    "histSize": 65, // //number or color values per channel //256 //32 //64                     
+    "num_dominant_colors": 16, //how many colors to use for alignment 3
+    "find_colors": 20, //how many colors to search for best match //num_dominant_colors*1.5
+    "strength": 1.0, //how much to change/align the color //0.5f 1.0f
+    "maxChange": 0.15 //limit ratio (original*(1+maxChange)) for max color change //0.1f
 }

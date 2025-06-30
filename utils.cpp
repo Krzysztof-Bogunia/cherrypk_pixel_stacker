@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -14,8 +16,16 @@
 #include <cmath>
 #include <valarray>
 #include <random>
-#include <list>
-
+#include <cctype>
+#include <opencv2/imgproc.hpp>
+#include "opencv2/highgui.hpp"
+#include "opencv2/features2d.hpp"
+#include "opencv2/video.hpp"
+#include "opencv2/calib3d.hpp"
+#include <limits>
+#include <unordered_set>
+#include <ctime>
+#include "opencv2/photo.hpp"
 
 // Overloaded operators
 //  Override printing vector
@@ -29,11 +39,79 @@ std::ostream &operator<<(std::ostream &os,
   }
   return os;
 }
+
 template<typename T>
 bool isEqual(const std::valarray<T> &left, const std::valarray<T> &right) {
     return std::equal(std::begin(left), std::end(left), std::begin(right));
 }
 
+bool isEqual(const std::string& left, const std::string& right, bool caseInsensitive=false) {
+  if (left.size() != right.size()) {
+      return false;
+  }
+  if (caseInsensitive) {
+    for (int i=0; i<left.size(); i++) {
+      if (tolower((unsigned char)left[i]) != tolower((unsigned char)right[i])) {
+        return false;
+      }
+    }
+  }
+  else {
+    for (int i=0; i<left.size(); i++) {
+      if (((unsigned char)left[i]) != ((unsigned char)right[i])) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// Helper function to compare if 2 input values are equal
+bool isEqual(const cv::Point2f& p1, const cv::Point2f& p2) {
+  return ((p1.x == p2.x) && (p1.y == p2.y));
+}
+
+// Helper function to compare if 2 input values are equal
+template <class T>
+bool isEqual(const std::vector<T>& p1, const std::vector<T>& p2) {
+ if(p1.size() != p2.size()) {
+   return false;
+ }
+ for(int i=0;i<p1.size();i++) {
+   if(p1[i] == p2[i]) {
+     return true;
+   }
+ }
+ return false;
+}
+
+// Helper function to compare if 2 input values are equal
+template <class T>
+bool isEqual(const T& p1, const T& p2) {
+ return p1 == p2;
+}
+
+// Helper function to compare if 2 input Mats are equal
+bool isEqual(const cv::Mat& p1, const cv::Mat& p2) {
+ cv::Mat diff = p1 != p2;
+ bool eq = cv::sum(diff) == cv::Scalar(0,0,0,0);
+  return eq;
+}
+
+/**
+ * @return true if value2 is greater than value1 
+ */
+bool isGreater(const std::string value1, const std::string value2) {
+  using namespace std;
+  
+  int result = value1.compare(value2);
+  if(result < 0) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
 
 //** Data conversion functions **
 std::vector<float> toVec(Json::Value jval)
@@ -80,8 +158,6 @@ cv::Mat toMat(std::vector<float> vec)
 {
   using namespace std;
 
-  // cv::Mat newMat(0, vec.size(), cv::DataType<float>::type);
-  // newMat.push_back(vec.data());
   cv::Mat newMat(1, vec.size(), cv::DataType<float>::type, vec.data());
 
   return newMat;
@@ -181,6 +257,17 @@ std::vector<T> toVec(const std::valarray<T>& varr){
   return vec;
 }
 
+template<typename T>
+std::vector<std::vector<T>> toVec(std::valarray<std::valarray<T>> varr){
+  std::vector<std::vector<T>> vec;
+  vec.resize(varr.size());
+  for(int i=0;i<varr.size();i++) {
+      std::vector<T> vec2 = toVec(varr[i]);
+      vec[i]=vec2;
+  }
+  return vec;
+}
+
 std::vector<cv::Point2f> toVecPoint2f(const cv::Mat &arrayPoints) {
 //Convert each row to point. Each column is considered separate dimension of points.
   std::vector<cv::Point2f> imagePoints(arrayPoints.rows); // 2d points in new image
@@ -235,4 +322,56 @@ std::string to_string(const std::list<cv::Point> &data) {
   return result;
 }
 
+std::vector<std::string> split(std::string s, char delimiter) {
+  using namespace std;
+
+  string word; 
+  stringstream ss(s);
+  vector<string> words;
+  while(getline(ss, word, delimiter)){
+      words.push_back(word);
+  }
+
+  return words;
+}
+
+/// @brief Return N first elements
+/// @tparam T 
+/// @param s vector of type T
+/// @param n number of elements to return
+/// @param offset number of elements to skip
+/// @return vector of same type with n elements
+template<typename T>
+std::vector<T> firstN(const std::vector<T>& vec, int n, int offset=0) {
+  using namespace std;
+
+  int n2 = min(n, (int)vec.size());
+  vector<T> vec2(n2);
+  for (int i = 0; i < n2; i++)
+  {
+    vec2[i] = vec[i+offset];
+  }  
+
+  return vec2;
+}
+
+/// @brief Return N last elements
+/// @tparam T 
+/// @param s vector of type T
+/// @param n number of elements to return
+/// @param offset number of elements to skip
+/// @return vector of same type with n elements
+template<typename T>
+std::vector<T> lastN(const std::vector<T>& vec, int n, int offset=0) {
+  using namespace std;
+
+  int n2 = min(n, (int)vec.size());
+  vector<T> vec2(n2);
+  for (int i = 0; i < n2; i++)
+  {
+    vec2[n2-1-i] = vec[vec.size()-1-i-offset];
+  }  
+
+  return vec2;
+}
 
