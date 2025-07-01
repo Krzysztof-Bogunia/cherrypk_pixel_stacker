@@ -151,11 +151,11 @@ class ColorLUT {
 
       numChannels = inputImages[0].channels();
       vector<Mat> histInput(inputImages.size());
-      vector<Mat> histTarget(inputImages.size());
+      vector<Mat> histTarget(targetImages.size());
       vector<vector<float>> inputMax(inputImages.size());
-      vector<vector<float>> targetMax(inputImages.size());
+      vector<vector<float>> targetMax(targetImages.size());
       vector<vector<vector<int>>> inputSortedIndices(inputImages.size());
-      vector<vector<vector<int>>> targetSortedIndices(inputImages.size());
+      vector<vector<vector<int>>> targetSortedIndices(targetImages.size());
       vector<int> imgPairs(inputImages.size(), 0);
 
       #pragma omp parallel for
@@ -625,23 +625,24 @@ class ColorLUT {
     }
 
     /// @brief Saves color look-up table (lut) to 3d cube format. Number of points (r,g,b) in file is lut.rows^3.
-    /// @param name name of file [+date]
+    /// @param filePath filePath of file [+date]
+    /// @param addTimestamp option to add timestamp in file name
     /// @param overwrite option to overwrite existing file
-    void save(const std::string &name="lut", bool addTimestamp=true, bool overwrite=false) {
+    void save(const std::string &filePath="./lut", bool addTimestamp=true, bool overwrite=false) {
       using namespace std;
       using namespace cv;
   
       string fileType = ".cube";
-      string filePath = "";
+      string _filePath = "";
       if(addTimestamp) {
         time_t timestamp = time(NULL);
         struct tm datetime = *localtime(&timestamp);
         char dateFormatted[16];
         strftime(dateFormatted, 16, "%Y%m%d_%H%M%S", &datetime);
-        filePath = name+"_"+dateFormatted+"_"+fileType;
+        _filePath = filePath+"_"+dateFormatted+"_"+fileType;
       }
       else {
-        filePath = name + fileType;
+        _filePath = filePath + fileType;
       }
 
       Mat lutScaled = lut3d.clone();
@@ -663,12 +664,12 @@ class ColorLUT {
       }
   
       //dont overwrite existing file
-      if(filesystem::exists(filePath) && !overwrite) {
+      if(filesystem::exists(_filePath) && !overwrite) {
         return;
       }
       else {
         fstream file;
-        file.open(filePath, ios::out);
+        file.open(_filePath, ios::out);
         file << "LUT_3D_SIZE"<< " "<< histSize<< endl;
         file << endl;
         file << std::fixed<< std::setprecision(3);
@@ -687,23 +688,24 @@ class ColorLUT {
     }
 
     /// @brief Saves color look-up table (lut) to 1d cube format. Number of points (r,g,b) in file is lut.rows.
-    /// @param name name of file [+date]
+    /// @param filePath filePath of file [+date]
+    /// @param addTimestamp option to add timestamp in file name
     /// @param overwrite option to overwrite existing file
-    void save1d(const std::string &name="lut", bool addTimestamp=true, bool overwrite=false) {
+    void save1d(const std::string &filePath="lut", bool addTimestamp=true, bool overwrite=false) {
       using namespace std;
       using namespace cv;
   
       string fileType = ".cube";
-      string filePath = "";
+      string _filePath = "";
       if(addTimestamp) {
         time_t timestamp = time(NULL);
         struct tm datetime = *localtime(&timestamp);
         char dateFormatted[16];
         strftime(dateFormatted, 16, "%Y%m%d_%H%M%S", &datetime);
-        filePath = name+"_"+dateFormatted+"_"+fileType;
+        _filePath = filePath+"_"+dateFormatted+"_"+fileType;
       }
       else {
-        filePath = name + fileType;
+        _filePath = filePath + fileType;
       }
 
       Mat lutScaled = lut_32F.clone();
@@ -725,12 +727,12 @@ class ColorLUT {
       }
   
       //dont overwrite existing file
-      if(filesystem::exists(filePath) && !overwrite) {
+      if(filesystem::exists(_filePath) && !overwrite) {
         return;
       }
       else {
         fstream file;
-        file.open(filePath, ios::out);
+        file.open(_filePath, ios::out);
         file << "LUT_1D_SIZE"<<" "<< histSize<< endl;
         file << endl;
         file << std::fixed<< std::setprecision(3);

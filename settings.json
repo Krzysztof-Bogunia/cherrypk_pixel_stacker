@@ -1,5 +1,5 @@
 {
-    //general params
+    //General program params
     "task": "stack", //what is the program task //{stack, simple_stack, align, calibrate_color}
     "interpolation": 4, //which interpolation algorithm to use (1:Linear, 2:Cubic, 3:Area, 4:Lanchos) //4
     "erosion_size": 3, //size for expanding mask of bad pixels //1
@@ -31,9 +31,9 @@
     "comparison_scale": 0.25, //pixel ratio - decrease resolution for calculating some parameters //0.25
 
     //Color transfer/calibration params
-    "histSize": 65, // //number or color values per channel //256 //32 //64                     
+    "histSize": 65, //number or color values per channel //32 //64
     "num_dominant_colors": 16, //how many colors to use for alignment 3
     "find_colors": 20, //how many colors to search for best match //num_dominant_colors*1.5
-    "strength": 1.0, //how much to change/align the color //0.5f 1.0f
+    "strength": 1.0, //how much to change/align the color //1.0f
     "maxChange": 0.15 //limit ratio (original*(1+maxChange)) for max color change //0.1f
 }

@@ -48,7 +48,7 @@ enum ProgramTask {
 struct ProgramParams {
   int VERBOSITY = 0;
   ProgramTask task = ProgramTask::stack;
-  float radicalChangeRatio = 1.2f;
+  float radicalChangeRatio = 1.3f;
   int interpolation = cv::INTER_LANCZOS4; //which interpolation algorithm to use (1:Linear, 4:Lanchos) //4 //cv::INTER_LINEAR; cv::INTER_LANCZOS4
   int erosion_size = 3; //expand mask of bad pixels //3
 };
@@ -56,39 +56,39 @@ int VERBOSITY = 0; //0
 
 struct AlignmentParams {
   int base_index = 0; //index of base reference image //0
-  double checkArea = 0.7; //image comparison area //0.7
-  double alpha = 1.0; //how many points to keep for alignment //1.0
-  int maxIter = 15; //max number of undistortion iterations //50
+  double checkArea = 0.85; //image comparison area //0.7
+  double alpha = 0.9; //how many points to keep for alignment //1.0
+  int maxIter = 30; //max number of undistortion iterations //50
   bool alignCenter = false; //keep center of images the same //false
   bool warpAlign = true; //apply warp perspective operation to align images //true
-  int splitAlignPartsVertical = 4; //how many times to split image (vertically) to align each part independently //4
-  int splitAlignPartsHorizontal = 4; //how many times to split image (horizontally) to align each part independently //4
-  int warpIter = 0; //max number of align image iterations //0
+  int splitAlignPartsVertical = 8; //how many times to split image (vertically) to align each part independently //4
+  int splitAlignPartsHorizontal = 8; //how many times to split image (horizontally) to align each part independently //4
+  int warpIter = 40; //max number of align image iterations //0
   int n_points = 8000; //initial number of points to detect and compare between images //1024
   int K = -1;  //number of points clusters for estimating distortion //3
-  float ratio = 0.7f; //how many points to keep for undistortion //0.65f,
+  float ratio = 0.65f; //how many points to keep for undistortion //0.65f,
   bool mirroring = false; //try mirroring best alignment //false
   int erosion_size = 3; //cutting size in pixels for borders of mask //3
 };
 
 struct StackingParams {
   int patternN = 200; //number of sharpness checking regions (total=patternN*patternN) //200
-  int patternSize = 4; //size of each sharpness checking region //3
+  int patternSize = 5; //size of each sharpness checking region //3
   float minImgCoef = 0.0f; //minimum value to add to each image's coefficients //0.0
-  float baseImgCoef = 0.5f; //coefficient value of base image (by default first img is base) //0.5f
+  float baseImgCoef = 0.4f; //coefficient value of base image (by default first img is base) //0.5f
   float coef_sharpness = 1.5; //local sharpness weight for total image coeffs //1.0
   float coef_similarity = 1.0; //local similarity to base img weight for total image coeffs //1.0
   double comparison_scale = 0.25; //pixel ratio - decrease resolution for calculating some parameters //1.0
-  int blur_size = 7; //adds smoothing to coefficients (increase it to hide switching pixel regions between images)
+  int blur_size = 5; //adds smoothing to coefficients (increase it to hide switching pixel regions between images)
   double upscale = 1.0; //if value is greater than 1.0 then final image will be upscaled (by upscaling input images and merging them) //1.0
 };
 
 struct ColorParams {
-  int num_dominant_colors = 3; //how many colors to use for alignment 3
-  int histSize = 32; // //number or color values per channel //256 //32 //64                     
-  float strength = 1.0f; //how much to change/align the color //0.5f 1.0f
-  float maxChange = 0.50f; //limit ratio (original*(1+maxChange)) for max color change //0.5f
-  int find_colors = num_dominant_colors+2; //how many colors to search for best match //num_dominant_colors+2
+  int histSize = 65; //number or color values per channel //32 //64 
+  int num_dominant_colors = 16; //how many colors to use for alignment 3
+  int find_colors = 20; //how many colors to search for best match //num_dominant_colors*1.5
+  float strength = 1.0f; //how much to change/align the color //1.0f
+  float maxChange = 0.15; //limit ratio (original*(1+maxChange)) for max color change //0.1f
 };
 
 

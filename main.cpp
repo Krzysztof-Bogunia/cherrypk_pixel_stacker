@@ -362,8 +362,8 @@ int main(int argc, char* argv[])
       optimizedImages2[i] = img;
     }
     mylut.calibrate(optimizedImages1, optimizedImages2);
-    mylut.save("lut", true, false);
-    mylut.save1d("lut1d", true, false);
+    mylut.save(OutputPath+"lut", true, false);
+    mylut.save1d(OutputPath+"lut1d", true, false);
 
     // Check if results folders exist
     namespace fs = std::filesystem;
