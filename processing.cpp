@@ -1,64 +1,35 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <opencv2/core.hpp>
-// #include <opencv2/opencv.hpp>
-#include <opencv2/imgproc.hpp>
-#include "opencv2/highgui.hpp"
-#include "opencv2/features2d.hpp"
-#include "opencv2/video.hpp"
-#include "opencv2/calib3d.hpp"
-#include <chrono>
-#include <vector>
-#include <list>
-#include <algorithm>
-#include <glob.h>
-#include <filesystem>
-#include <cmath>
-#include <valarray>
-#include <random>
-#include <limits>
+#pragma once
+
+// #include <iostream>
+// #include <fstream>
+// #include <string>
+// #include <opencv2/core.hpp>
+// // #include <opencv2/opencv.hpp>
+// #include <opencv2/imgproc.hpp>
+// #include "opencv2/highgui.hpp"
+// #include "opencv2/features2d.hpp"
+// #include "opencv2/video.hpp"
+// #include "opencv2/calib3d.hpp"
+// #include <chrono>
+// #include <vector>
+// #include <list>
+// #include <algorithm>
+// #include <glob.h>
+// #include <filesystem>
+// #include <cmath>
+// #include <valarray>
+// #include <random>
+// #include <limits>
+// #include <unordered_set>
+#include "opencv2/core/hal/interface.h"
+#include "opencv2/core/traits.hpp"
+#include "opencv2/core/types.hpp"
+#include "opencv2/imgproc.hpp"
 #include "utils.cpp"
 #include <libInterpolate/Interpolate.hpp>
-
-
-struct ProgramParams {
-  int VERBOSITY = 0;
-  float radicalChangeRatio = 1.2f;
-  int interpolation = cv::INTER_LANCZOS4; //which interpolation algorithm to use (1:Linear, 4:Lanchos) //4 //cv::INTER_LINEAR; cv::INTER_LANCZOS4
-  int erosion_size = 3; //expand mask of bad pixels //3
-
-};
-int VERBOSITY = 0; //0
-
-struct AlignmentParams {
-  int base_index = 0; //index of base reference image //0
-  double checkArea = 0.7; //image comparison area //0.7
-  double alpha = 1.0; //how many points to keep for alignment //1.0
-  int maxIter = 15; //max number of undistortion iterations //50
-  bool alignCenter = false; //keep center of images the same //false
-  bool warpAlign = true; //apply warp perspective operation to align images //true
-  int splitAlignPartsVertical = 4; //how many times to split image (vertically) to align each part independently //4
-  int splitAlignPartsHorizontal = 4; //how many times to split image (horizontally) to align each part independently //4
-  int warpIter = 0; //max number of align image iterations //0
-  int n_points = 8000; //initial number of points to detect and compare between images //1024
-  int K = -1;  //number of points clusters for estimating distortion //3
-  float ratio = 0.7f; //how many points to keep for undistortion //0.65f,
-  bool mirroring = false; //try mirroring best alignment //false
-  int erosion_size = 3; //cutting size in pixels for borders of mask //3
-};
-
-struct StackingParams {
-  int patternN = 200; //number of sharpness checking regions (total=patternN*patternN) //200
-  int patternSize = 4; //size of each sharpness checking region //3
-  float minImgCoef = 0.0f; //minimum value to add to each image's coefficients //0.0
-  float baseImgCoef = 0.5f; //coefficient value of base image (by default first img is base) //0.5f
-  float coef_sharpness = 1.5; //local sharpness weight for total image coeffs //1.0
-  float coef_similarity = 1.0; //local similarity to base img weight for total image coeffs //1.0
-  double comparison_scale = 0.25; //pixel ratio - decrease resolution for calculating some parameters //1.0
-  int blur_size = 7; //adds smoothing to coefficients (increase it to hide switching pixel regions between images)
-  double upscale = 1.0; //if value is greater than 1.0 then final image will be upscaled (by upscaling input images and merging them) //1.0
-};
+#include <string>
+#include <valarray>
+#include <vector>
 
 enum Detector {
   orb,
@@ -66,6 +37,114 @@ enum Detector {
   sift,
   akaze
 };
+
+enum ProgramTask {
+  stack,
+  simple_stack,
+  align,
+  calibrate_color
+};
+
+struct ProgramParams {
+  int VERBOSITY = 0;
+  ProgramTask task = ProgramTask::stack;
+  float radicalChangeRatio = 1.3f;
+  int interpolation = cv::INTER_LANCZOS4; //which interpolation algorithm to use (1:Linear, 4:Lanchos) //4 //cv::INTER_LINEAR; cv::INTER_LANCZOS4
+  int erosion_size = 3; //expand mask of bad pixels //3
+};
+int VERBOSITY = 0; //0
+
+struct AlignmentParams {
+  int base_index = 0; //index of base reference image //0
+  double checkArea = 0.85; //image comparison area //0.7
+  double alpha = 0.9; //how many points to keep for alignment //1.0
+  int maxIter = 30; //max number of undistortion iterations //50
+  bool alignCenter = false; //keep center of images the same //false
+  bool warpAlign = true; //apply warp perspective operation to align images //true
+  int splitAlignPartsVertical = 8; //how many times to split image (vertically) to align each part independently //4
+  int splitAlignPartsHorizontal = 8; //how many times to split image (horizontally) to align each part independently //4
+  int warpIter = 40; //max number of align image iterations //0
+  int n_points = 8000; //initial number of points to detect and compare between images //1024
+  int K = -1;  //number of points clusters for estimating distortion //3
+  float ratio = 0.65f; //how many points to keep for undistortion //0.65f,
+  bool mirroring = false; //try mirroring best alignment //false
+  int erosion_size = 3; //cutting size in pixels for borders of mask //3
+};
+
+struct StackingParams {
+  int patternN = 200; //number of sharpness checking regions (total=patternN*patternN) //200
+  int patternSize = 5; //size of each sharpness checking region //3
+  float minImgCoef = 0.0f; //minimum value to add to each image's coefficients //0.0
+  float baseImgCoef = 0.4f; //coefficient value of base image (by default first img is base) //0.5f
+  float coef_sharpness = 1.5; //local sharpness weight for total image coeffs //1.0
+  float coef_similarity = 1.0; //local similarity to base img weight for total image coeffs //1.0
+  double comparison_scale = 0.25; //pixel ratio - decrease resolution for calculating some parameters //1.0
+  int blur_size = 5; //adds smoothing to coefficients (increase it to hide switching pixel regions between images)
+  double upscale = 1.0; //if value is greater than 1.0 then final image will be upscaled (by upscaling input images and merging them) //1.0
+};
+
+struct ColorParams {
+  int histSize = 65; //number or color values per channel //32 //64 
+  int num_dominant_colors = 16; //how many colors to use for alignment 3
+  int find_colors = 20; //how many colors to search for best match //num_dominant_colors*1.5
+  float strength = 1.0f; //how much to change/align the color //1.0f
+  float maxChange = 0.15; //limit ratio (original*(1+maxChange)) for max color change //0.1f
+};
+
+
+/**
+ * @brief Return vector<int> indices that would sort input vector
+ */
+template <class T>
+std::vector<int> Argsort(std::vector<T> vec)
+{
+  std::vector<int> indices(vec.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  sort(indices.begin(), indices.end(), [&](int i, int j) { return vec[i] < vec[j]; });
+  return indices;
+}
+
+/**
+ * @brief Return vector<int> indices that would sort input vector
+ */
+template <class T>
+std::vector<int> Argsort(std::vector<std::vector<T>> vec2)
+{
+  std::vector<int> indices(vec2.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  sort(indices.begin(), indices.end(), [&](int i, int j) { return vec2[i][0] < vec2[j][0]; });
+  return indices;
+}
+
+/**
+ * @brief Return vector<int> indices that would sort input vector
+ */
+std::vector<int> Argsort(std::vector<std::string> vec)
+{
+  auto vec2 = vec;
+  // for (int i = 0; i < vec2.size(); i++)
+  // {
+  //   // reverse(vec2[i].begin(), vec2[i].end());
+  //   // vec2[i] = std::string(vec2[i].rbegin(), vec2[i].rend());
+  //   vec2[i] = std::string(vec2[i].rbegin(), vec2[i].rend());
+  // }
+  std::vector<int> indices(vec2.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  sort(indices.begin(), indices.end(), [&](int i, int j) { return isGreater(vec2[j], vec2[i]); });
+  // sort(indices.begin(), indices.end(), [&vec](std::string i, std::string j) { return (bool)i.compare(j); });
+  return indices;
+}
+
+template <class T>
+std::vector<T> Reorder(const std::vector<T> &v, const std::vector<int> &order)
+{
+  std::vector<T> vec2(v.size());
+  for (int i = 0, d; i < order.size(); i++)
+  {
+    vec2[i] = v[order[i]];
+  }
+  return vec2;
+}
 
 
 /// Initialize 2D maps with values in range [0...n].
@@ -144,8 +223,8 @@ cv::Mat Undistort(const cv::Mat &image, const cv::Mat &mtx, const cv::Mat &dist,
   if(AlignCenter) {
     //TODO: possible error
     cv::Mat H = cv::Mat::eye(3, 3, CV_32F);
-    H.at<float>(0, 2) = newCameraResolution.width/2 - newcameramtx.at<float>(0,2);
-    H.at<float>(1, 2) = newCameraResolution.height/2 - newcameramtx.at<float>(1,2);
+    H.at<float>(0, 2) = (float)(newCameraResolution.width/2) - newcameramtx.at<float>(0,2);
+    H.at<float>(1, 2) = (float)(newCameraResolution.height/2) - newcameramtx.at<float>(1,2);
     unwarped = warpPerspective(image, H, newCameraResolution, interpolation);
   }
   // auto [map1, map2] = initUndistortRectifyMap(newcameramtx, dist, newCameraResolution, AlignCenter, device);
@@ -170,12 +249,32 @@ cv::Mat Undistort(const cv::Mat &image, const cv::Mat &map1, const cv::Mat &map2
 }
 
 
-//** genera; logic functions **
+//** general logic functions **
+
+ProgramTask toProgramTask(const std::string &str) {
+  using namespace std;
+
+  ProgramTask task;
+  if(isEqual(str, "stack", true)) {
+    task = ProgramTask::stack;
+  }
+  else if(isEqual(str, "simple_stack", true)) {
+    task = ProgramTask::simple_stack;
+  }
+  else if(isEqual(str, "align", true)) {
+    task = ProgramTask::align;
+  }
+  else if(isEqual(str, "calibrate_color", true)) {
+    task = ProgramTask::calibrate_color;
+  }
+
+  return task;
+}
 
 /// @brief replaces all occurrences of substring "from" with string "to" in input string "str"
 std::string ReplaceAll(const std::string &str, const std::string &from, const std::string &to)
 {
-  size_t start_pos = 0;
+  int start_pos = 0;
   std::string result = str;
   while ((start_pos = result.find(from, start_pos)) != std::string::npos)
   {
@@ -224,7 +323,7 @@ std::tuple<std::vector<cv::Mat>, std::vector<cv::Mat>, int, int, std::vector<flo
   glob_t glob_result;
   std::string folderPath = ReplaceAll(folderPath_, "//", "/");
   glob(folderPath.c_str(), GLOB_TILDE, NULL, &glob_result);
-  for (size_t i = 0; i < glob_result.gl_pathc; ++i)
+  for (int i = 0; i < glob_result.gl_pathc; ++i)
   {
     filePaths.push_back(glob_result.gl_pathv[i]);
   }
@@ -242,7 +341,7 @@ std::tuple<std::vector<cv::Mat>, std::vector<cv::Mat>, int, int, std::vector<flo
   return std::make_tuple(matrices, distortions, cameraHeight, cameraWidth, cameraFocus);
 }
 
-std::tuple<ProgramParams, AlignmentParams, StackingParams> LoadProgramParameters(const std::string &path)
+std::tuple<ProgramParams, AlignmentParams, StackingParams, ColorParams> LoadProgramParameters(const std::string &path)
 {
   using namespace std;
   using namespace cv;
@@ -250,6 +349,8 @@ std::tuple<ProgramParams, AlignmentParams, StackingParams> LoadProgramParameters
   ProgramParams programPars1;
   AlignmentParams alignPars1;
   StackingParams stackPars1;
+  ColorParams colorPars1;
+
   ifstream file(path);
   Json::Value loadeddict;
   Json::Reader reader;
@@ -260,6 +361,9 @@ std::tuple<ProgramParams, AlignmentParams, StackingParams> LoadProgramParameters
   }
   if(loadeddict.isMember("VERBOSITY")) {
     programPars1.VERBOSITY = loadeddict["VERBOSITY"].as<int>();
+  }
+  if(loadeddict.isMember("task")) {
+    programPars1.task = toProgramTask(loadeddict["task"].as<string>());
   }
   if(loadeddict.isMember("interpolation")) {
     programPars1.interpolation = loadeddict["interpolation"].as<int>();
@@ -335,11 +439,28 @@ std::tuple<ProgramParams, AlignmentParams, StackingParams> LoadProgramParameters
   }
   if(loadeddict.isMember("upscale")) {
     stackPars1.upscale = loadeddict["upscale"].as<double>();
+  }
+
+  if(loadeddict.isMember("num_dominant_colors")) {
+    colorPars1.num_dominant_colors = loadeddict["num_dominant_colors"].as<int>();
+  }
+  if(loadeddict.isMember("histSize")) {
+    colorPars1.histSize = loadeddict["histSize"].as<int>();
+  } 
+  if(loadeddict.isMember("strength")) {
+    colorPars1.strength = loadeddict["strength"].as<float>();
+  } 
+  if(loadeddict.isMember("maxChange")) {
+    colorPars1.maxChange = loadeddict["maxChange"].as<float>();
+  } 
+  if(loadeddict.isMember("find_colors")) {
+    colorPars1.find_colors = loadeddict["find_colors"].as<int>();
+    colorPars1.find_colors = min(colorPars1.find_colors, colorPars1.histSize);
   } 
 
   cout << "Loaded program parameters from: " << path << endl;
 
-  return std::make_tuple(programPars1, alignPars1, stackPars1);
+  return std::make_tuple(programPars1, alignPars1, stackPars1, colorPars1);
 }
 
 /// Loads calibration pairs of missaligned points[height,width].
@@ -373,15 +494,22 @@ std::tuple<cv::Mat, cv::Mat, int, int, float> LoadPoints(const std::string &cali
 std::tuple<std::vector<cv::Mat>, std::vector<std::string>> LoadImages(std::string stacking_path, int matchFirstDimSize = -1, bool printing = true)
 {
   std::vector<std::string> imagesPaths;
+  std::vector<std::string> imagesNames;
   glob_t glob_result;
   std::string stacking_path_ = ReplaceAll(stacking_path, "//", "/");
   glob(stacking_path_.c_str(), GLOB_TILDE, NULL, &glob_result);
-  for (size_t i = 0; i < glob_result.gl_pathc; ++i)
+  
+  for (int i = 0; i < glob_result.gl_pathc; ++i)
   {
     imagesPaths.push_back(glob_result.gl_pathv[i]);
+    auto words = split(imagesPaths[i], '/');
+    words = split(words[words.size()-1], '.');
+    imagesNames.push_back(words[words.size()-2]);
   }
   globfree(&glob_result);
 
+  auto sortedIndices = Argsort(imagesNames);
+  imagesPaths = Reorder(imagesPaths, sortedIndices);
   std::vector<cv::Mat> images;
   for (const std::string &path : imagesPaths)
   {
@@ -436,31 +564,44 @@ void SaveToCSV(std::vector<T> data, std::string path="./data.csv") {
   file.close();
 }
 
-void SaveImage(const cv::Mat &image, const std::string &name="img", const std::string &fileType=".jpg", bool overwrite=false) {
+void SaveImage(const cv::Mat &image, const std::string &name="img", const std::string &fileType=".jpg", bool overwrite=false, bool addTimestamp=true, bool RGB2BGR=false) {
   using namespace std;
   using namespace cv;
 
-  time_t timestamp = time(NULL);
-  struct tm datetime = *localtime(&timestamp);
-  char dateFormatted[16];
-  strftime(dateFormatted, 16, "%Y%m%d_%H%M%S", &datetime);
-  string filePath = name+"_"+dateFormatted+"_"+fileType;
+  string filePath = "";
+  if(addTimestamp) {
+    time_t timestamp = time(NULL);
+    struct tm datetime = *localtime(&timestamp);
+    char dateFormatted[16];
+    strftime(dateFormatted, 16, "%Y%m%d_%H%M%S", &datetime);
+    filePath = name+"_"+dateFormatted+"_"+fileType;
+  }
+  else {
+    filePath = name + fileType;
+  }
   
+  Mat _image = image;
+  if(RGB2BGR) {
+    cvtColor(_image, _image, COLOR_RGB2BGR);
+  }
+
   //dont overwrite existing file
   if(!overwrite) {
     if(!filesystem::exists(filePath)) {
-      imwrite(filePath, image);
+      imwrite(filePath, _image);
     }
   }
   else {
-    imwrite(filePath, image);
+    imwrite(filePath, _image);
   }
 }
 
 cv::Mat Resize(const cv::Mat &inputImage, int newWidth, int newHeight, int interpolation = cv::INTER_LINEAR)
 {
-  cv::Mat image;
-  cv::resize(inputImage.clone(), image, cv::Size(newWidth, newHeight), 0, 0, interpolation);
+  cv::Mat image = inputImage.clone();
+  if((inputImage.rows != newHeight) || (inputImage.cols != newWidth)) {
+    cv::resize(image, image, cv::Size(newWidth, newHeight), 0, 0, interpolation);
+  }
   return image;
 }
 
@@ -622,38 +763,6 @@ float max(std::vector<cv::Mat> vec) {
   }
 
   return (float)result;
-}
-
-
-template <class T>
-std::vector<int> Argsort(std::vector<std::vector<T>> vec2)
-{
-  // Return indices that would sort input vector
-  std::vector<int> indices(vec2.size());
-  std::iota(indices.begin(), indices.end(), 0);
-  sort(indices.begin(), indices.end(), [&](T i, T j) { return vec2[i][0] < vec2[j][0]; });
-  return indices;
-}
-
-template <class T>
-std::vector<int> Argsort(std::vector<T> vec)
-{
-  // Return indices that would sort input vector
-  std::vector<int> indices(vec.size());
-  std::iota(indices.begin(), indices.end(), 0);
-  sort(indices.begin(), indices.end(), [&](T i, T j) { return vec[i] < vec[j]; });
-  return indices;
-}
-
-template <class T>
-std::vector<T> Reorder(const std::vector<T> &v, const std::vector<int> &order)
-{
-  std::vector<T> vec2(v.size());
-  for (int i = 0, d; i < order.size(); i++)
-  {
-    vec2[i] = v[order[i]];
-  }
-  return vec2;
 }
 
 template <class T>
@@ -886,7 +995,7 @@ cv::Mat divide(const cv::Mat& array, float value2) {
   cv::Mat result;
   if(array.channels() == 1) {
     cv::Mat value = Mat::ones(array2.rows, array2.cols, CV_32F);
-    cv::divide(array, value, value, (double)1.0/value2);
+    cv::divide(array, value, value, 1.0/(double)(value2));
     result = value;
   }
   else if(array.channels() > 1) {
@@ -894,7 +1003,7 @@ cv::Mat divide(const cv::Mat& array, float value2) {
     cv::split(array2, channels);
     for (int i = 0; i < array2.channels(); i++) {
       cv::Mat value = Mat::ones(array2.rows, array2.cols, CV_32F);
-      cv::divide(channels[i], value, channels[i], (double)1.0/value2);
+      cv::divide(channels[i], value, channels[i], 1.0/(double)(value2));
     }
     result = to3dMat(channels);
   }
@@ -923,6 +1032,20 @@ cv::Mat divide(float value2, const cv::Mat& array) {
       vec.push_back(value);
     }
     result = to3dMat(vec);
+  }
+
+  return result;
+}
+
+template <template <typename> class Container, 
+          typename T1>
+Container<T1> divide(const Container<T1>& array, float value2) {
+  using namespace std;
+  using namespace cv;
+
+  Container<T1> result(array.size());
+  for (int i = 0; i < array.size(); i++) {
+    result[i] = array[i] / value2;
   }
 
   return result;
@@ -974,30 +1097,31 @@ cv::Mat patchNaNs(const cv::Mat& array, T fillValue, T minValue=(T)0.0, T maxVal
   return to3dMat(channels);
 }
 
-template<typename T>
-std::vector<T> NormalizeTo_0_1(const std::vector<T>& array) {
-    std::vector<T> result(array.size());
+template <template <typename> class Container, 
+          typename T1 >
+Container<T1> NormalizeTo_0_1(const Container<T1>& array) {
+    Container<T1> result(array.size());
     std::copy(std::begin(array), std::end(array), std::begin(result));
 
-    T minVal = *std::min_element(result.begin(), result.end());
-    T maxVal = *std::max_element(result.begin(), result.end());
-    T delta2 = maxVal - minVal;
+    T1 minVal = *std::min_element(std::begin(result), std::end(result));
+    T1 maxVal = *std::max_element(std::begin(result), std::end(result));
+    T1 delta2 = maxVal - minVal;
 
-    if((minVal == (T)0.0)) {
-      if((maxVal == (T)1.0) || (maxVal == minVal)) {
+    if((minVal == (T1)0.0)) {
+      if((maxVal == (T1)1.0) || (maxVal == minVal)) {
         return result;
       }
     }
-    else if((maxVal == (T)1.0)) {
-      if((minVal == (T)0.0) || (maxVal == minVal)) {
+    else if((maxVal == (T1)1.0)) {
+      if((minVal == (T1)0.0) || (maxVal == minVal)) {
         return result;
       }
     }
 
-    if(delta2 == (T)0.0) {
-      if(maxVal >= (T)1.0) { delta2 = maxVal; }
-      else if(maxVal == (T)0.0) { delta2 = (T)1.0; }
-      else if(maxVal < (T)0.0) { delta2 = -maxVal; }
+    if(delta2 == (T1)0.0) {
+      if(maxVal >= (T1)1.0) { delta2 = maxVal; }
+      else if(maxVal == (T1)0.0) { delta2 = (T1)1.0; }
+      else if(maxVal < (T1)0.0) { delta2 = -maxVal; }
     }
 
     for (int i = 0; i < result.size(); i++) {
@@ -1093,7 +1217,7 @@ cv::Mat Replace(const cv::Mat& img, float newValue, ImgReplaceMode mode) {
       double maxVal;
       int minIdx[3];
       int maxIdx[3];
-      for (size_t i = 0; i<m.rows; i++)
+      for (int i = 0; i<m.rows; i++)
       {      
         Mat point = m.row(i);        
         minMaxIdx(point, &minVal, &maxVal, minIdx, maxIdx);
@@ -1106,18 +1230,34 @@ cv::Mat Replace(const cv::Mat& img, float newValue, ImgReplaceMode mode) {
   return m;
 }
 
-auto LimitToRange(const auto &x, const auto &lowBounds, const auto &upBounds)
+template<typename T>
+T LimitToRange(const T &x, const auto &lowBounds, const auto &upBounds)
+{
+  auto x_limited = x;
+  if (x_limited < (T)lowBounds)
+  {
+    x_limited = (T)lowBounds;
+  }
+  else if (x_limited > (T)upBounds)
+  {
+    x_limited = (T)upBounds;
+  }
+  return x_limited;
+}
+
+template<typename T>
+std::vector<T> LimitToRange(const std::vector<T> &x, const auto &lowBounds, const auto &upBounds)
 {
   auto x_limited = x;
   for (int i = 0; i < x.size(); i++)
   {
-    if (x_limited[i] < lowBounds[i])
+    if (x_limited[i] < (T)lowBounds[i])
     {
-      x_limited[i] = lowBounds[i];
+      x_limited[i] = (T)lowBounds[i];
     }
-    else if (x_limited[i] > upBounds[i])
+    else if (x_limited[i] > (T)upBounds[i])
     {
-      x_limited[i] = upBounds[i];
+      x_limited[i] = (T)upBounds[i];
     }
   }
   return x_limited;
@@ -1288,8 +1428,10 @@ double CompareImg(const cv::Mat &imageRef, const cv::Mat &imageTest, double area
   }
 
   Mat imageTest2 = MatchResolution(imageRef,imageTest);
-  int xCut = (int)((1.0 - area2) * 0.5 * imageRef.rows);
-  int yCut = (int)((1.0 - area2) * 0.5 * imageRef.cols);
+  // int xCut = (int)((1.0 - area2) * 0.5 * imageRef.rows);
+  // int yCut = (int)((1.0 - area2) * 0.5 * imageRef.cols);
+  int xCut = (int)((1.0 - area2) * 0.5 * imageRef.cols);
+  int yCut = (int)((1.0 - area2) * 0.5 * imageRef.rows);
   std::vector<int> topLeftCorner = {0 + yCut, 0 + xCut};
   std::vector<int> topRightCorner = {0 + yCut, imageRef.cols - xCut};
   std::vector<int> bottomLeftCorner = {imageRef.rows - yCut, 0 + xCut};
@@ -1363,6 +1505,14 @@ std::tuple<double, double, cv::Mat> CompareImg2(const cv::Mat &refImg, const cv:
   return std::make_tuple(mse1, mse2, mask);
 }
 
+/**
+ * @brief Compare difference of image2 to reference image1.
+ * 
+ * @param image1_ reference image
+ * @param image2_ target image
+ * @param printing optionally print results to console
+ * @return std::tuple<double, double> {mse, psnr}
+ */
 std::tuple<double, double> CompareMetrics(const cv::Mat& image1_, const cv::Mat& image2_, bool printing = false)
 {
   using namespace cv;
@@ -2087,38 +2237,113 @@ double extrapolateN(const std::vector<std::vector<double>> &coords, const std::v
     return y;
 }
 
-// Helper function to compare if 2 input values are equal
-bool equalPoints(const cv::Point2f& p1, const cv::Point2f& p2) {
-   return ((p1.x == p2.x) && (p1.y == p2.y));
-}
-
-// Helper function to compare if 2 input values are equal
-bool equal(const cv::Mat& p1, const cv::Mat& p2) {
-  cv::Mat diff = p1 != p2;
-  bool eq = cv::sum(diff) == cv::Scalar(0,0,0,0);
-   return eq;
-}
-
-// Function to find unique points.
-// @returns unique points
-std::tuple<std::vector<cv::Point2f>, std::vector<int>> unique(const std::vector<cv::Point2f> &vecPoints)
+// Function to find unique values.
+// @returns unique values and vector with indices of unique values
+template <template <typename> class Container, 
+          typename T1>
+std::tuple<Container<T1>, std::vector<int>> unique(const Container<T1> &vec)
 {
     using namespace std;
     using namespace cv;
 
-    std::vector<cv::Point2f> uniquePoints = vecPoints;
-    std::vector<int> uniquePointsIndices;
+    Container<T1> uniquePoints;
+    vector<int> uniqueIndices;
+    unordered_set<T1> s;
+    for (int i = 0; i < vec.size(); i++) {
+      if(s.contains(vec[i])) {
+        // duplicateIndices.push_back(i);
+        continue;
+      }
+      else {
+        s.insert(vec[i]);
+        uniquePoints.push_back(vec[i]);
+        uniqueIndices.push_back(i);
+      }
+    }    
+    // uniquePoints.assign(s.begin(),s.end());
 
-    uniquePoints.erase(std::unique(uniquePoints.begin(), uniquePoints.end(), equalPoints), uniquePoints.end());
-    return make_tuple(vecPoints, uniquePointsIndices);
+    return make_tuple(uniquePoints, uniqueIndices);
+}
+
+/// Function to select values at indices.
+template <class T>
+T select(T &vec, const std::vector<int> &ind) {
+  using namespace std;
+
+  T vec2(ind.size());
+  for (int i = 0; i < ind.size(); i++) {
+    vec2[i] = vec[ind[i]];
+  }
+  return vec2;
+}
+// template <class T>
+// std::vector<T> select(std::vector<T> &vec, const std::vector<int> &ind) {
+//   using namespace std;
+
+//   std::vector<T> vec2(ind.size());
+//   for (int i = 0; i < ind.size(); i++) {
+//     vec2[i] = vec[ind[i]];
+//   }
+//   return vec2;
+// }
+
+/**
+ * @brief Function to remove values(inplace) at indices.
+ * 
+ * @param vec input/output vector
+ * @param ind vector of indices for removal
+ */
+template <typename T>
+void remove(std::vector<T> &vec, const std::vector<int> &ind) {
+  using namespace std;
+  std::vector<int> indSorted = ind;
+  sort(indSorted.begin(), indSorted.end());
+  for (int i = 0; i < ind.size(); i++) {
+    vec.erase(vec.begin() + indSorted[indSorted.size()-i-1]);
+  }
+}
+
+/**
+ * @brief Function to remove values(inplace) at indices.
+ * 
+ * @param vec input/output vector
+ * @param ind index for removal
+ */
+ template <typename T>
+ void remove(std::vector<T> &vec, int ind) {
+  using namespace std;
+  vec.erase(vec.begin() + ind);
+ }
+
+ /**
+  * @brief Function to swap data between selected positions.
+  * 
+  * @param target input array-like container
+  * @param pos1 first position to swap
+  * @param pos2 second position to swap
+  * @return copy of Container<T1> target swith swapped data.
+  */
+template <template <typename> class Container, 
+          typename T1>
+Container<T1> swap(const Container<T1> &target, int pos1, int pos2) {
+  Container<T1> result(target.size());
+  std::copy(std::begin(target), std::end(target), std::begin(result));
+  // std::copy(std::begin(target)+pos1, std::begin(target)+pos1+1, std::begin(result)+pos2);
+  // std::copy(std::begin(target)+pos2, std::begin(target)+pos2+1, std::begin(result)+pos1);
+  result[pos1] = target[pos2];
+  result[pos2] = target[pos1];
+
+  return result;
 }
 
 // Function to swap columns
 // @returns cloned cv::Mat with swaped col1 and col2
 cv::Mat swapCol(const cv::Mat &target, int col1, int col2) {
-  cv::Mat result = target.clone();; //target.row(from);
-  result.row(col1) = target.row(col2).clone();
-  result.row(col2) = target.row(col1).clone();
+  cv::Mat result = target.clone();
+  // cv::Mat column1 = target.col(col1).clone();
+  target.col(col1).copyTo(result.col(col2));
+  target.col(col2).copyTo(result.col(col1));
+  // column1.copyTo(result.col(col2));
   return result;
 }
 
@@ -2127,7 +2352,7 @@ cv::Mat swapCol(const cv::Mat &target, int col1, int col2) {
 /// @param mask mask (range [0;1]) that specifies pixels to be changed.
 /// @param value new value to apply in masked region.
 /// @return image with new value in masked region.
-cv::Mat FillMasked(const cv::Mat &image, const cv::Mat &mask, float value)
+cv::Mat fillMasked(const cv::Mat &image, const cv::Mat &mask, float value)
 {
   using namespace std;
   using namespace cv;
@@ -2191,7 +2416,7 @@ std::tuple<cv::Mat, cv::Mat> calibrateCamera(const cv::Mat &_referencePoints, co
     bool found = false;
     Mat pts1, pts2;
     for(int i=0; i<referencePoints.rows; i++) {
-      if(equal(referencePoints.row(i), centerPoint) || equal(imagePoints.row(i), centerPoint)) {
+      if(isEqual(referencePoints.row(i), centerPoint) || isEqual(imagePoints.row(i), centerPoint)) {
         found = true;
       }
       else {
@@ -2232,6 +2457,7 @@ std::tuple<cv::Mat, cv::Mat> calibrateCamera(const cv::Mat &_referencePoints, co
   knownY = Reorder(knownY, indices);
   knownDiff1 = Reorder(knownDiff1, indices);
   knownDiff2 = Reorder(knownDiff2, indices);
+  //TODO: interpolators possibly cant extrapolate and fill with 0 when out of range
   _2D::LinearDelaunayTriangleInterpolator<double> interp1; //LinearDelaunayTriangleInterpolator  ThinPlateSplineInterpolator
   _2D::LinearDelaunayTriangleInterpolator<double> interp2; //LinearDelaunayTriangleInterpolator  ThinPlateSplineInterpolator
   interp1.setData(knownX, knownY, knownDiff1);
@@ -2363,7 +2589,7 @@ cv::Mat mirror4way(const std::vector<cv::Mat> &partial_images, int index)
 }
 
 // Find best parameters to match pair of images
-std::tuple<cv::Mat, cv::Mat> RelativeUndistort(const cv::Mat &refImg, const cv::Mat &distortedImg,
+std::tuple<cv::Mat, cv::Mat> relativeUndistort(const cv::Mat &refImg, const cv::Mat &distortedImg,
                                               int cameraWidth, int cameraHeight, 
                                               ProgramParams pparams=ProgramParams(), AlignmentParams aparams=AlignmentParams())
 {
@@ -2874,7 +3100,7 @@ std::tuple<cv::Mat, cv::Mat> RelativeUndistort(const cv::Mat &refImg, const cv::
 
 
 //* STACKING *
-float Sharpness(const cv::Mat& image) {
+float sharpness(const cv::Mat& image) {
   using namespace std;
   using namespace cv;
 
@@ -2915,7 +3141,7 @@ float Sharpness(const cv::Mat& image) {
   return meanSharpness / (rows.size() * cols.size());
 }
 
-cv::Mat SharpnessOfRegions(const cv::Mat& image, float patternSize, int patternN) {
+cv::Mat sharpnessOfRegions(const cv::Mat& image, float patternSize, int patternN) {
   int height, width;
   if (patternSize < 1.0f) {
       height = std::max(int(image.rows * patternSize), 3);
@@ -2937,7 +3163,7 @@ cv::Mat SharpnessOfRegions(const cv::Mat& image, float patternSize, int patternN
       std::vector<float> sharpnessPerCol;
       for (int col : cols) {
           cv::Mat region = image(cv::Rect(col, row, width, height));
-          sharpnessPerCol.push_back(Sharpness(region));
+          sharpnessPerCol.push_back(sharpness(region));
       }
       sharpnessPerRegion.push_back(sharpnessPerCol);
   }
@@ -2949,7 +3175,7 @@ cv::Mat SharpnessOfRegions(const cv::Mat& image, float patternSize, int patternN
   return sharpnessPerRegion_highRes;
 }
 
-std::pair<cv::Point, int> ClosestPoint(std::vector<cv::Point> pointsXY, cv::Point pointXY, int priority=-1) {
+std::pair<cv::Point, int> closestPoint(std::vector<cv::Point> pointsXY, cv::Point pointXY, int priority=-1) {
     // priority defines which axis is more important when calculating distance
     std::vector<float> priorityRatio;
     if (priority == -1) {
@@ -2965,12 +3191,12 @@ std::pair<cv::Point, int> ClosestPoint(std::vector<cv::Point> pointsXY, cv::Poin
         distances[i] = std::abs(pointsXY[i].x - pointXY.x) * priorityRatio[0] + std::abs(pointsXY[i].y - pointXY.y) * priorityRatio[1];
     }
 
-    int minDistanceIndex = std::min_element(distances.begin(), distances.end()) - distances.begin();
+    int minDistanceIndex = std::distance(std::begin(distances), std::min_element(std::begin(distances), std::end(distances)));
     return std::make_pair(pointsXY[minDistanceIndex], minDistanceIndex);
 }
 
 template<typename T>
-std::pair<std::vector<T>, int> ClosestPoint(std::vector<std::vector<T>> pointsXY, std::vector<T> pointXY, int priority=-1) {
+std::pair<std::vector<T>, int> closestPoint(std::vector<std::vector<T>> pointsXY, std::vector<T> pointXY, int priority=-1) {
     // priority defines which axis is more important when calculating distance
     std::vector<T> priorityRatio;
     if (priority == -1) {
@@ -2986,16 +3212,34 @@ std::pair<std::vector<T>, int> ClosestPoint(std::vector<std::vector<T>> pointsXY
         distances[i] = std::abs(pointsXY[i][0] - pointXY[0]) * priorityRatio[0] + std::abs(pointsXY[i][1] - pointXY[1]) * priorityRatio[1];
     }
 
-    int minDistanceIndex = std::min_element(distances.begin(), distances.end()) - distances.begin();
+    int minDistanceIndex = std::distance(std::begin(distances), std::min_element(std::begin(distances), std::end(distances)));
     return std::make_pair(pointsXY[minDistanceIndex], minDistanceIndex);
+}
+
+// template<typename T, typename T2>
+/// @brief Finds closest value.
+/// @param points vector of possible points to search
+/// @param x reference value
+/// @return closest value to @param x from @param points and index of that value.
+template <template <typename> class Container, 
+          typename T1, typename T2 >
+std::pair<T2, int> closestValue(const Container<T1>& points, T2 x) {
+
+    std::vector<T2> distances(points.size());
+    for (int i = 0; i < points.size(); i++) {
+      distances[i] = std::abs((T2)(points[i]) - x);
+    }
+
+    int minDistanceIndex = std::distance(std::begin(distances), std::min_element(std::begin(distances), std::end(distances)));
+    return std::make_pair((T2)points[minDistanceIndex], minDistanceIndex);
 }
 
 /// @brief Combines multiple images into single image with maximized sharpness.
 /// @param images vector of images to be stacked
 /// @param base_id optional which image is treated as base (by default first img is base)
 /// @param imagesMasks optional vector of image masks
-/// @return 
-cv::Mat StackImages( const std::vector<cv::Mat>& images, int base_id=0, const std::vector<cv::Mat>& imagesMasks=std::vector<cv::Mat>(), 
+/// @return single combined image with 3 channels
+cv::Mat stackImages( const std::vector<cv::Mat>& images, int base_id=0, const std::vector<cv::Mat>& imagesMasks=std::vector<cv::Mat>(), 
                       ProgramParams pparams=ProgramParams(), StackingParams sparams=StackingParams() ) {
     using namespace std;
     using namespace cv;
@@ -3029,14 +3273,14 @@ cv::Mat StackImages( const std::vector<cv::Mat>& images, int base_id=0, const st
     #pragma omp parallel for
     for (int i = 0; i < images2.size(); i++) {
         if(i==base_id) {
-            sharpnessRefImg = SharpnessOfRegions(images2[base_id], patternSize, patternN);
+            sharpnessRefImg = sharpnessOfRegions(images2[base_id], patternSize, patternN);
             sharpnessRefImg.convertTo(sharpnessRefImg, CV_32F);
             sharpnessPerImage.push_back(sharpnessRefImg);
             averageSharpnessPerImage.push_back(cv::mean(sharpnessRefImg)[0]);
             continue;
         }
         cv::Mat img = images2[i];
-        auto sharpnesPerRegion = SharpnessOfRegions(img, patternSize, patternN);
+        auto sharpnesPerRegion = sharpnessOfRegions(img, patternSize, patternN);
         sharpnesPerRegion.convertTo(sharpnesPerRegion, CV_32F);
         sharpnesPerRegion = multiply(sharpnesPerRegion, masks2[i]);
         sharpnessPerImage.push_back(sharpnesPerRegion);
@@ -3257,7 +3501,7 @@ cv::Mat StackImages( const std::vector<cv::Mat>& images, int base_id=0, const st
     imageCoeffs.clear();
     stack.convertTo(stack, CV_32F, 255.0/maxTest);
 
-    cv::Mat sharpnesPerRegion = SharpnessOfRegions(stack, patternSize, patternN);
+    cv::Mat sharpnesPerRegion = sharpnessOfRegions(stack, patternSize, patternN);
     cv::Mat sharpnessDiff = sharpnesPerRegion - sharpnessRefImg;
     sharpnessDiff.convertTo(sharpnessDiff, CV_32F);
     double betterSharp = cv::sum(sharpnessDiff >= 0.0)[0] / (stack.rows * stack.cols);
@@ -3324,7 +3568,7 @@ cv::Mat StackImages( const std::vector<cv::Mat>& images, int base_id=0, const st
     baseImgChannels.clear();
 
     //final sharpnes diffrence
-    sharpnesPerRegion = SharpnessOfRegions(stack, patternSize, patternN);
+    sharpnesPerRegion = sharpnessOfRegions(stack, patternSize, patternN);
     sharpnessDiff = sharpnesPerRegion - sharpnessRefImg;
     // res = cv::threshold(sharpnessDiff, goodIndices, 0.0, 1.0, THRESH_BINARY);
     cv::inRange(sharpnessDiff, 0.0f, numeric_limits<float>::infinity(), goodIndices);
@@ -3354,5 +3598,40 @@ cv::Mat StackImages( const std::vector<cv::Mat>& images, int base_id=0, const st
     
     // stack.convertTo(stack, CV_32F, 255.0);
     return stack;
+}
+
+/**
+ * @brief Remap 1st series of data to 2nd series, by linearly interpolating new values at positions of 1st series and value range of 2nd series.
+ * 
+ * @param refSeries array-like input 1st series (any size)
+ * @param targetSeries array-like input 2nd series (any size)
+ * @return Container<T1> array-like series with interpolated values in range of targetSeries and refSeries size
+ */
+template <template <typename> class Container, 
+          typename T1>
+Container<T1> remapSeries(const Container<T1>& refSeries, const Container<T1>& targetSeries) {
+  using namespace std;
+  using namespace cv;
+
+  Container<T1> refPositions(refSeries);
+  auto[_Y, _indUnique] = unique(targetSeries);
+  Container<T1> Y(_Y);
+  Container<T1> X = Y;
+  refPositions = NormalizeTo_0_1(refPositions);
+  X = NormalizeTo_0_1(X);
+
+  auto sortedIndices = Argsort(X);
+  X = Reorder(X, sortedIndices);
+  Y = Reorder(Y, sortedIndices);
+  // TODO: interpolators possibly cant extrapolate and fill with 0 when out of range
+  _1D::LinearInterpolator<float> interp1; //LinearDelaunayTriangleInterpolator  ThinPlateSplineInterpolator
+  interp1.setData(X,Y);
+  Container<T1> results(refSeries.size());
+  for(int x=0; x<refPositions.size(); x++) {
+    float y = interp1((T1)refPositions[x]);
+    results[x] = y;
+  }
+
+  return results;
 }
 

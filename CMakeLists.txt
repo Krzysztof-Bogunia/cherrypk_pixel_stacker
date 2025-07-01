@@ -169,8 +169,8 @@ FetchContent_Declare(
 FetchContent_GetProperties(jsoncpp)
 if(NOT jsoncpp_POPULATED)
   message(STATUS "Fetching jsoncpp...")
-  FetchContent_Populate(jsoncpp)
-  add_subdirectory(${jsoncpp_SOURCE_DIR}/)
+  FetchContent_MakeAvailable(jsoncpp)
+  # add_subdirectory(${jsoncpp_SOURCE_DIR}/)
 endif()
 
 FetchContent_Declare(
@@ -184,6 +184,7 @@ if(NOT libInterpolate_POPULATED)
   message(STATUS "Fetching libInterpolate...")
   FetchContent_MakeAvailable(libInterpolate)
 endif()
+
 
 set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_STATIC_LIBRARY_SUFFIX})
 find_package(OpenMP)
@@ -230,7 +231,8 @@ target_link_libraries(cherrypk_pixel_stacker
   opencv_flann 
   opencv_features2d 
   jsoncpp_static
-  libInterpolate::Interpolate )
+  libInterpolate::Interpolate
+  )
 
 # #print all variables
 # get_cmake_property(_variableNames VARIABLES)
