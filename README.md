@@ -7,13 +7,13 @@ To get image that has high sharpness for objects that are in different distances
 Arguably the hardest part for the program is to accurately align all images to avoid strange artifacts when blending images like average of 2 different objects, multiple copies of the same object or moving shadows etc. I am still experimenting with making image alignment more accurate but generally the biggest advantage it has over other programs is in my opinion the ability to correct for both camera movement and lens distortion (with various results ...). In other words user is not required to calibrate camera for the program to stack them.  
 
 At least 2 images are required for stacking. This example shows that final image retains original look and has added sharpness (to regions further away from camera) from next image. Program can try to add more details from input images or retain more look of the reference image, depending on the settings.  
-![Stacking overview](./resources/stacking_overview.jpg "Stacking overview")  
 
 [*This feature is currently only used for creating color lookup tables (--task calibrate_color) and getting images with target look]  
 Another use case of this program is to create LUT that can later be used by other programs to apply target look. When user selects calibrate_color the program will compare images in ./input and ./target folders (any number of any images), find best match for each input image and sum histogram differences to create color LUT in .cube format (1D and 3D). 
 In current version algorithm for applying LUT, by this program is simplified and output images are meant to be used as quick preview of created look.  
 This is overview of color calibration process relying on histogram matching and dominant colors.  
 ![Calibrate color overview](./resources/calibrate_color_overview.jpg "Calibrate color overview")  
+
 
 
 # Future development plans:  
