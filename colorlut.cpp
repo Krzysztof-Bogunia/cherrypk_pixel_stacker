@@ -1,14 +1,11 @@
-#pragma once
-
-// #include "opencv2/core/hal/interface.h"
-#include "opencv2/core.hpp"
-#include "opencv2/core/hal/interface.h"
-#include "opencv2/core/types.hpp"
-#include "opencv2/imgproc.hpp"
-#include "utils.cpp"
-#include "processing.cpp"
 #include <cmath>
 #include <string>
+#include "utils.cpp"
+#include "processing.cpp"
+
+#pragma once
+#pragma GCC target ("avx")
+
 
 /**
  * @brief Generate image with list of colors in boxes.
@@ -217,12 +214,12 @@ class ColorLUT {
           auto topIndices2 = Argsort(toVec((valarray<float>)(coeffs2)));
           // auto topIndices = Argsort(toVec((valarray<float>)(coeffs + toValarray(histInputGray))));
           // auto topIndices2 = Argsort(toVec((valarray<float>)(coeffs2 + toValarray(histTargetGray))));
-          topIndices = lastN(topIndices, find_colors);
-          topIndices2 = lastN(topIndices2, find_colors);
+          topIndices = selectLastN(topIndices, find_colors);
+          topIndices2 = selectLastN(topIndices2, find_colors);
           // auto topIndices = Argsort(toVec((valarray<float>)(coeffs+coeffsSum)));
           // auto topIndices2 = Argsort(toVec((valarray<float>)(coeffs2+coeffsSum)));
     
-          inputSortedIndices[n1][c] = lastN(topIndices, num_dominant_colors);
+          inputSortedIndices[n1][c] = selectLastN(topIndices, num_dominant_colors);
           targetSortedIndices[imgPairs[n1]][c] = topIndices2;
           vector<float> dist(topIndices.begin(), topIndices.end());
           valarray<float> distances1 = toValarray(dist);

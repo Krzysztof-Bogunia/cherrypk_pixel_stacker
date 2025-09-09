@@ -1,30 +1,8 @@
-// #include <iostream>
-// #include <fstream>
-// #include <string>
-// #include <opencv2/core.hpp>
-// // #include <opencv2/opencv.hpp>
-// #include <opencv2/imgproc.hpp>
-// #include "opencv2/highgui.hpp"
-// #include "opencv2/core/base.hpp"
-// #include "opencv2/core/mat.hpp"
-// #include "opencv2/features2d.hpp"
-// #include <chrono>
-// #include <vector>
-// #include <list>
-// #include <algorithm>
-// #include <glob.h>
-// #include <filesystem>
-// #include <cmath>
-// #include <valarray>
-// #include <random>
-// #include <list>
-// #include <filesystem>
-// #include <ctime>
-// #include "opencv2/photo.hpp"
-#include "opencv2/imgproc.hpp"
 #include "utils.cpp"
 #include "processing.cpp"
 #include "colorlut.cpp"
+
+#pragma GCC target ("avx")
 
 
 int main(int argc, char* argv[])
@@ -43,9 +21,9 @@ int main(int argc, char* argv[])
   bool mask_set_manual = false;
   string MasksPath = "./masks/";
   bool task_set_manual = false;
-  ProgramTask Task = ProgramTask::stack; //ProgramTask::stack; ProgramTask::calibrate_color;
+  ProgramTask Task = ProgramTask::stack; //ProgramTask::stack; ProgramTask::calibrate_color; ProgramTask::benchmark;
   string ImagesPath = "./input/";
-  string TargetImagesPath = "./target/"; // "./reference/"  ""
+  string TargetImagesPath = "./target/"; // "./reference/"; "";
   bool output_set_manual = false;
   string OutputPath = "./output/";
   if (argc >= 2) {
@@ -107,6 +85,7 @@ int main(int argc, char* argv[])
   }
   auto interpolation = (cv::InterpolationFlags)programParams1.interpolation; //cv::INTER_LANCZOS4; //cv::INTER_LINEAR; cv::INTER_LANCZOS4
   float radicalChangeRatio = programParams1.radicalChangeRatio;
+  int erosion_size = programParams1.erosion_size; //3; //cut borders of mask
   //Alignment Params
   int base_index = alignmentParams1.base_index; //index of base reference image //0
   double checkArea = alignmentParams1.checkArea; //0.7 //0.8 0.9
@@ -119,7 +98,6 @@ int main(int argc, char* argv[])
   int n_points = alignmentParams1.n_points; //1024; //4096 //8192 //512
   float ratio = alignmentParams1.ratio; //0.75f; //how many points to keep for alignment //0.5f;
   bool mirroring = alignmentParams1.mirroring; //false; //try mirroring best alignment //false
-  int erosion_size = alignmentParams1.erosion_size; //3; //cut borders of mask
   //Stacking Params
   int patternN = stackingParams1.patternN; //200; //64
   int patternSize = stackingParams1.patternSize; //3; //16
@@ -134,6 +112,22 @@ int main(int argc, char* argv[])
   float colorStrength = colorParams1.strength; //how much to change/align the color //0.5f 1.0f
   float maxChange = colorParams1.maxChange; //limit ratio (original*(1+maxChange)) for max color change //0.5f
   int find_colors = colorParams1.find_colors; //how many colors to search for best match //num_dominant_colors+2
+
+  cout << "Executing program task: " << to_string(Task) << endl;
+
+  if(Task == ProgramTask::benchmark) {
+    int result = -1;
+    try
+    {
+      result = benchmark_processing();
+    }
+    catch (const std::exception&)
+    {
+      cout << "Benchmark: ERROR!" << endl;
+    }
+    return result;
+  }
+
   //LOAD IMAGES
   auto[images, imagesPaths] = LoadImages(ImgsFullPath, -1, true);
   int N = images.size();
@@ -166,12 +160,25 @@ int main(int argc, char* argv[])
   strftime(dateFormatted, 16, "%Y%m%d_%H%M%S", &datetime);
 
   //set base/reference image
+  if(base_index < 0) {
+    //finding best image for base
+    vector<float> averageSharpnessPerImage(images.size());
+    #pragma omp parallel for
+    for(int i = 0; i < images.size(); i++) {
+      auto sharpnesPerRegion = sharpnessOfRegions(images[i], patternSize, patternN);
+      sharpnesPerRegion.convertTo(sharpnesPerRegion, CV_32F);
+      averageSharpnessPerImage[i] = cv::mean(sharpnesPerRegion)[0];
+    }
+    auto sorted_indices = Argsort(averageSharpnessPerImage);
+    base_index = sorted_indices[0];
+  }
   Mat baseImg = images[base_index].clone();
   int w = baseImg.cols;
   int h = baseImg.rows;
   auto newCameraResolution = baseImg.size();
   int cameraWidth = newCameraResolution.width;
   int cameraHeight = newCameraResolution.height;
+  cout << "Using image base: number="<<base_index<<" | name="<<imagesNames[base_index]<<endl;
 
   //match resolution to base image
   if((Task == ProgramTask::stack) || (Task == ProgramTask::simple_stack) || (Task == ProgramTask::align)) {
@@ -194,17 +201,15 @@ int main(int argc, char* argv[])
   Mat baseImgMask = Mat::ones(baseImg.rows, baseImg.cols, CV_32F);
   for (int i = 0; i < N; i++) {
     imagesForProcessing[i] = images[i];
-    Mat ImgMask = Mat::ones(imagesForProcessing[i].rows, imagesForProcessing[i].cols, CV_32F);
-    masks[i] = ImgMask;
+    masks[i] = Mat::ones(imagesForProcessing[i].rows, imagesForProcessing[i].cols, CV_32F);
   }
-  imagesForProcessing[base_index] = baseImg;
+  // imagesForProcessing[base_index] = baseImg;
 
 
   if((Task == ProgramTask::stack) || (Task == ProgramTask::align)) {
-    // Mat baseImgMask(cv::Size(baseImg.cols, baseImg.rows), CV_32F, Scalar(1.0f)); 
     baseImgMask = Mat::ones(cv::Size(baseImg.cols, baseImg.rows), CV_32F); 
     masks[base_index] = baseImgMask;
-    mseList[base_index] = CompareImg(baseImg, imagesForProcessing[base_index], 0.55);
+    mseList[base_index] = CompareImg(baseImg, imagesForProcessing[base_index], 0.7);
     //get mse to compare before-after
     #pragma omp parallel for
     for (int i = 0; i < images.size(); i++) {
@@ -212,32 +217,32 @@ int main(int argc, char* argv[])
     }
   }
 
-  // Preprocessing images for stacking (align/undistort)
+  
+  // Preprocessing Images (align/undistort)
   if((Task == ProgramTask::stack) || (Task == ProgramTask::align)) {
-    //TODO: improve masking (avoid masking regions that were black in original images ?)
+    if(VERBOSITY > 0) {
+      cout << "RelativeUndistort: Finding and interpolating parameters to align/undistort image" << endl;
+    }
     #pragma omp parallel for
     for (int i = 0; i < images.size(); i++)
     {
       if(i != base_index) {
-        auto [autoUndistorted, mask] = relativeUndistort(baseImg, images[i].clone(),cameraWidth, cameraHeight, programParams1, alignmentParams1);
-        // mask.convertTo(mask, CV_32F, (double)1.0/255.0); //convert to float[0.0f, 1.0f]
+        auto [autoUndistorted, mask] = relativeUndistort(baseImg, imagesForProcessing[i], w, h, programParams1, alignmentParams1);
         //mask bad/unknown pixels
         if(erosion_size > 0) {
-          Mat element = getStructuringElement(MorphShapes::MORPH_RECT,
-                                    Size(2*erosion_size+1, 2*erosion_size+1),
-                                    Point(erosion_size, erosion_size));
-          erode(mask, mask, element);
+          Mat element = getStructuringElement(MorphShapes::MORPH_RECT, Size(3, 3));
+          erode(mask, mask, element, Point2i(-1,-1), max(0, erosion_size) );
         }    
-        Mat mask2 = maskFromChange(baseImg, autoUndistorted, radicalChangeRatio);
-        mask = multiply(mask, mask2);
         imagesForProcessing[i] = autoUndistorted;
         masks[i] = mask;
-        mseList[i] = CompareImg(baseImg, autoUndistorted, 0.7);  
+        mseList[i] = CompareImg(multiply(baseImg, mask), multiply(autoUndistorted, mask), 0.7);  
       }
     }
     if(VERBOSITY >= 0) { 
-      cout<<"Input images had misalignment error before prosessing: mse = "<<mseList_unprocessed<<endl; 
-      cout<<"Images for stacking were undistorted with result: mse = "<<mseList<<endl; 
+      double average1 = toValarray(mseList_unprocessed).sum()/mseList_unprocessed.size();
+      double average2 = toValarray(mseList).sum()/mseList.size();
+      cout<<"Input images had misalignment error before prosessing: mse average = "<<average1<<" | mse = "<<mseList_unprocessed<<endl; 
+      cout<<"Images were undistorted with result: mse average = "<<average2<<" | mse = "<<mseList<<endl; 
     }
   }
 
@@ -255,7 +260,6 @@ int main(int argc, char* argv[])
       }
     }
   }
-
   //realign after upscaling
   Mat baseImg_resized;
   if((Task == ProgramTask::stack) || (Task == ProgramTask::align)) {
@@ -265,23 +269,18 @@ int main(int argc, char* argv[])
     for (int i = 0; i < imagesForProcessing.size(); i++) {
       if((stackingParams1.upscale > 1.0) && (i != base_index)) {
         Mat autoAligned = AlignImageToImage(baseImg_resized, imagesForProcessing[i]);
-        // Mat mask = maskFromColor(autoAligned, {0,0,0});
         Mat mask = add(maskFromColor(autoAligned), invertMask(maskFromColor(baseImg_resized)));
         cv::threshold(mask,	mask, 0.0, 1.0, THRESH_BINARY);
         mask.convertTo(mask, CV_32F);
         //mask bad/unknown pixels
         if(erosion_size > 0) {
-          Mat element = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
-                                    Size(2*erosion_size+1, 2*erosion_size+1),
-                                    Point(erosion_size, erosion_size));
-          erode(mask, mask, element);
+          Mat element = getStructuringElement(MorphShapes::MORPH_RECT, Size(3, 3));
+          erode(mask, mask, element, Point2i(-1,-1), max(0, erosion_size) );
         }
-        Mat mask2 = maskFromChange(baseImg_resized, autoAligned, radicalChangeRatio);
             // mask.convertTo(mask, CV_8U, (double)255.0);
             // mask2.convertTo(mask2, CV_8U, (double)255.0);
             // cv::imwrite(string("maskFromColor")+".jpg", mask);
             // cv::imwrite(string("maskFromChange")+".jpg", mask2);
-        mask = multiply(mask, mask2);
         imagesForProcessing[i] = autoAligned;
         masks[i] = mask;
         // mseList[i] = CompareImg(baseImg_resized, autoAligned, 0.7);
@@ -290,60 +289,204 @@ int main(int argc, char* argv[])
       }
     }
     if((VERBOSITY >= 0) && realigned2) { 
-      cout<<"Images for stacking were re-aligned after upscaling with result: mse of valid(masked) regions = "<<mseList<<endl; 
+      double average = toValarray(mseList).sum()/mseList.size();
+      cout<<"Images were re-aligned after upscaling with result: mse average = "<<average<<" | mse of valid(masked) regions = "<<mseList<<endl; 
     }
   }
 
-  //retry alignment
+
+  //TODO: retry alignment with masking worst/most variable regions of images to compensate for wind,shadows etc ?
+  //retry alignment of image regions
   if((Task == ProgramTask::stack) || (Task == ProgramTask::align)) {
     bool realigned = false;
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < imagesForProcessing.size(); i++) {
       if(i != base_index) {
-      // if(mseList[i] > mseList_unprocessed[i]) {
         if((alignmentParams1.splitAlignPartsHorizontal > 0) && (alignmentParams1.splitAlignPartsVertical > 0) && (i != base_index)) {
-          // Mat autoAligned = AlignImageToImage(baseImg, images[i].clone());
-          Mat autoAligned = AlignImageToImageRegions(baseImg_resized, imagesForProcessing[i], 
-                                                      Size2i(alignmentParams1.splitAlignPartsHorizontal, alignmentParams1.splitAlignPartsVertical), 
-                                                      nullptr, interpolation);
-          // Mat mask = maskFromColor(autoAligned, {0,0,0});
-          Mat mask = add(maskFromColor(autoAligned), invertMask(maskFromColor(baseImg_resized)));
-          cv::threshold(mask,	mask, 0.0, 1.0, THRESH_BINARY);
-          mask.convertTo(mask, CV_32F);
-          //mask bad/unknown pixels
-          if(erosion_size > 0) {
-            Mat element = getStructuringElement(MorphShapes::MORPH_ELLIPSE,
-                                      Size(2*erosion_size+1, 2*erosion_size+1),
-                                      Point(erosion_size, erosion_size));
-            erode(mask, mask, element);
+          //do alignment with user's settings
+          {
+            auto [autoAligned, mask] = AlignImageToImageRegions(baseImg_resized, imagesForProcessing[i], 
+                                                        Size2i(alignmentParams1.splitAlignPartsHorizontal, alignmentParams1.splitAlignPartsVertical), 
+                                                        alignmentParams1, nullptr, interpolation);
+            //mask bad/unknown pixels
+            if(erosion_size > 0) {
+              Mat element = getStructuringElement(MorphShapes::MORPH_RECT, Size(3, 3));
+              erode(mask, mask, element, Point2i(-1,-1), max(0, erosion_size) );
+            }
+                // mask.convertTo(mask, CV_8U, (double)255.0);
+                // mask2.convertTo(mask2, CV_8U, (double)255.0);
+                // cv::imwrite(string("maskFromColor")+".jpg", mask);
+                // cv::imwrite(string("maskFromChange")+".jpg", mask2);
+            imagesForProcessing[i] = autoAligned;
+            masks[i] = mask;
+            mseList[i] = CompareImg(multiply(baseImg_resized, mask), multiply(autoAligned, mask), 0.7);
+            realigned = true;
           }
-          Mat mask2 = maskFromChange(baseImg_resized, autoAligned, radicalChangeRatio);
-              // mask.convertTo(mask, CV_8U, (double)255.0);
-              // mask2.convertTo(mask2, CV_8U, (double)255.0);
-              // cv::imwrite(string("maskFromColor")+".jpg", mask);
-              // cv::imwrite(string("maskFromChange")+".jpg", mask2);
-          mask = multiply(mask, mask2);
-          imagesForProcessing[i] = autoAligned;
-          masks[i] = mask;
-          // mseList[i] = CompareImg(baseImg, autoAligned, 0.7);
-          mseList[i] = CompareImg(multiply(baseImg_resized, mask), multiply(autoAligned, mask), 0.7);
-          realigned = true;
+          //try alignment with default settings and use best image
+          {
+            auto [autoAligned, mask] = AlignImageToImageRegions(baseImg_resized, imagesForProcessing[i]);
+            //mask bad/unknown pixels
+            if(erosion_size > 0) {
+              Mat element = getStructuringElement(MorphShapes::MORPH_RECT, Size(3, 3));
+              erode(mask, mask, element, Point2i(-1,-1), max(0, erosion_size) );
+            }
+            double mse = CompareImg(multiply(baseImg_resized, mask), multiply(autoAligned, mask), 0.7);
+            if(mse < mseList[i]) {
+              mseList[i] = mse;
+              imagesForProcessing[i] = autoAligned;
+              masks[i] = mask;
+              realigned = true;
+            }
+          }
+          //try alignment of unprocessed input image and use best image
+          {
+            auto [autoAligned, mask] = AlignImageToImageRegions(baseImg_resized, images[i].clone(), 
+                                                        Size2i(alignmentParams1.splitAlignPartsHorizontal, alignmentParams1.splitAlignPartsVertical), 
+                                                        alignmentParams1, nullptr, interpolation);
+            //mask bad/unknown pixels
+            if(erosion_size > 0) {
+              Mat element = getStructuringElement(MorphShapes::MORPH_RECT, Size(3, 3));
+              erode(mask, mask, element, Point2i(-1,-1), max(0, erosion_size) );
+            }
+            double mse = CompareImg(multiply(baseImg_resized, mask), multiply(autoAligned, mask), 0.7);
+            if(mse < mseList[i]) {
+              mseList[i] = mse;
+              imagesForProcessing[i] = autoAligned;
+              masks[i] = mask;
+              realigned = true;
+            }
+          }
         }
       }
     }
     if((VERBOSITY >= 0) && realigned) { 
-      cout<<"Images for stacking were split and re-aligned with result: mse of valid(masked) regions = "<<mseList<<endl; 
+      double average = toValarray(mseList).sum()/mseList.size();
+      cout<<"Images were split and re-aligned with result: mse average = "<<average<<" | mse of valid(masked) regions = "<<mseList<<endl; 
     }
   }
 
-   if(Task == ProgramTask::calibrate_color) {
+
+  //update masks
+  if((Task == ProgramTask::stack) || (Task == ProgramTask::align)) {
+    #pragma omp parallel for
+    for (int i = 0; i < imagesForProcessing.size(); i++) {
+      if(i != base_index) {
+        // Mat mask = masks[i];
+        Mat mask = Mat::ones(imagesForProcessing[i].size(), CV_32F);
+        // cv::threshold(mask,	mask, 0.0, 1.0, THRESH_BINARY);
+        mask = NormalizeTo_0_1(mask);
+        mask.convertTo(mask, CV_32F);
+        //mask bad/unknown pixels
+        Mat mask1 = add(maskFromColor(imagesForProcessing[i]), invertMask(maskFromColor(imagesForProcessing[base_index])));
+        cv::threshold(mask1,	mask1, 0.0, 1.0, THRESH_BINARY);
+        // mask = mask1;
+        mask = multiply(mask, mask1);
+        Mat element = getStructuringElement(MorphShapes::MORPH_RECT, Size(3, 3));
+        if(erosion_size > 0) {
+          erode(mask, mask, element, Point2i(-1,-1), max(0, erosion_size) );
+        }
+        Mat mask2 = maskFromChange( imagesForProcessing[base_index], 
+                                    imagesForProcessing[i], 
+                                    radicalChangeRatio, 
+                                    comparison_scale);
+          // dilate(mask2, mask2, element, Point2i(-1,-1), 1 );
+        mask2 = featherMask(mask2, 2, 1.0f/3.0f, 1.0f-1.0f/3.0f);
+        mask = multiply(mask, mask2);
+        //  mask = featherMask(mask, 3);
+        mask = NormalizeTo_0_1(mask);
+        masks[i] = mask;
+        mseList[i] = CompareImg(multiply(imagesForProcessing[base_index], mask), multiply(imagesForProcessing[i], mask), 0.7);
+      }
+    }
+  }
+
+
+  //match colors for stacking
+  if((Task == ProgramTask::stack) || (Task == ProgramTask::align)) {
+    //match brightness of each channel
+    #pragma omp parallel for
+    for (int i = 0; i < imagesForProcessing.size(); i++)
+    {
+      if(i != base_index) {
+        vector<float> brightnessRef(3);
+        {
+          vector<Mat> channels;
+          cv::split(imagesForProcessing[base_index], channels);
+          for (int c = 0; c < channels.size(); c++)
+          {
+            brightnessRef[c] = (float)cv::sum(multiply(channels[c], masks[i]))[0];
+          }
+        }
+        vector<float> brightness(3);
+        vector<Mat> channels;
+        cv::split(imagesForProcessing[i], channels);
+        for (int c = 0; c < channels.size(); c++)
+        {
+          brightness[c] = (float)cv::sum(multiply(channels[c], masks[i]))[0];
+          Mat correctedChannel = multiply(channels[c], brightnessRef[c]/brightness[c]);
+          channels[c] = correctedChannel;
+        }
+        Mat corrected = to3dMat(channels);
+        corrected.convertTo(corrected, CV_8U);
+        imagesForProcessing[i] = corrected;
+      }
+    }
+    vector<Mat> optimizedImages(imagesForProcessing.size());
+    #pragma omp parallel for
+    for (int i = 0; i < imagesForProcessing.size(); i++)
+    {
+      auto img = ReduceResolution(imagesForProcessing[i], imagesForProcessing[i].cols/16, interpolation);
+      // auto mask = ReduceResolution(masks[i], imagesForProcessing[i].cols/16, INTER_NEAREST);
+      cvtColor(img, img, COLOR_BGR2RGB);
+      optimizedImages[i] = img;
+    }
+    #pragma omp parallel for
+    for (int i = 0; i < imagesForProcessing.size(); i++)
+    {
+      if(i == base_index) {
+        continue;
+      }
+      else {
+        ColorLUT correctorLUT;
+        correctorLUT.num_dominant_colors = num_dominant_colors;
+        correctorLUT.histSize = histSize;
+        correctorLUT.strength = colorStrength;
+        correctorLUT.maxChange = maxChange;
+        correctorLUT.find_colors = find_colors;
+        Mat input = optimizedImages[i];
+        Mat target = optimizedImages[base_index];
+        Mat mask = MatchResolution(optimizedImages[i], masks[i], INTER_NEAREST);
+        input = multiply(input, mask);
+        target = multiply(target, mask);
+        input.convertTo(input, CV_8U);
+        target.convertTo(target, CV_8U);
+        vector<Mat> optimizedImage = {input};
+        vector<Mat> optimizedRefImage = {target};
+        correctorLUT.calibrate(optimizedImage, optimizedRefImage);
+        Mat img = imagesForProcessing[i];
+        cvtColor(img, img, COLOR_BGR2RGB);
+        Mat colorCalibrated = correctorLUT.apply(img);
+        cvtColor(img, img, COLOR_RGB2BGR);
+        imagesForProcessing[i] = img;
+      }
+      Mat mask = masks[i];
+      double mse = CompareImg(multiply(imagesForProcessing[base_index], mask), multiply(imagesForProcessing[i], mask), 0.7);
+      mseList[i] = mse;
+    }
+    if((VERBOSITY >= 0)) { 
+      double average = toValarray(mseList).sum()/mseList.size();
+      cout<<"Images were color corrected with result: mse average = "<<average<<" | mse of valid(masked) regions = "<<mseList<<endl; 
+    }
+  }
+
+
+  if(Task == ProgramTask::calibrate_color) {
     ColorLUT mylut;
     mylut.num_dominant_colors = num_dominant_colors;
     mylut.histSize = histSize;
     mylut.strength = colorStrength;
     mylut.maxChange = maxChange;
     mylut.find_colors = find_colors;
-    // mylut.calibrate(imagesForProcessing, targetImages);
     vector<Mat> optimizedImages1(imagesForProcessing.size());
     vector<Mat> optimizedImages2(targetImages.size());
     #pragma omp parallel for
@@ -365,11 +508,11 @@ int main(int argc, char* argv[])
     mylut.save(OutputPath+"lut", true, false);
     mylut.save1d(OutputPath+"lut1d", true, false);
 
-    // Check if results folders exist
-    namespace fs = std::filesystem;
-    if (!fs::is_directory(OutputPath) || !fs::exists(OutputPath)) { 
-          fs::create_directory(OutputPath);
-    }
+    // // Check if results folders exist
+    // namespace fs = std::filesystem;
+    // if (!fs::is_directory(OutputPath) || !fs::exists(OutputPath)) { 
+    //       fs::create_directory(OutputPath);
+    // }
     for(int n1=0; n1<imagesForProcessing.size(); n1++) {
       Mat img = imagesForProcessing[n1];
       cvtColor(img, img, COLOR_BGR2RGB);
@@ -377,9 +520,11 @@ int main(int argc, char* argv[])
       // Mat colorCalibrated2 = mylut.apply2(imagesForProcessing[n1]);
       // SaveImage(colorCalibrated2, OutputPath+imagesNames[n1].substr(0, imagesNames[n1].find("."))+"_colorCalibrated_", ".jpg", false, true);
       SaveImage(colorCalibrated, OutputPath+imagesNames[n1].substr(0, imagesNames[n1].find("."))+"_colorCalibrated_", ".jpg",
-                 true, true, true);
+                 false, true, true);
     }
   }
+
+
   // save intermediate preprocessed images
   if((Task == ProgramTask::stack) || (Task == ProgramTask::align)) {
     for (int i = 0; i < imagesForProcessing.size(); i++)
@@ -395,8 +540,11 @@ int main(int argc, char* argv[])
             fs::create_directory(SavePath);
         }
         auto aligned = imagesForProcessing[i];
-        cv::imwrite(SavePath+imagesNames[i].substr(0, imagesNames[i].find("."))+"_aligned_"+dateFormatted+".jpg", aligned);
-
+        SaveImage(aligned, SavePath+imagesNames[i].substr(0, imagesNames[i].find("."))+"_aligned_",
+                  ".jpg", 
+                  false, 
+                  true);
+        
         SavePath = MasksPath;
         if(output_set_manual) {
           SavePath = OutputPath;
@@ -409,7 +557,10 @@ int main(int argc, char* argv[])
         }
         auto mask = masks[i];
         mask.convertTo(mask, CV_8U, (double)255.0);
-        cv::imwrite(SavePath+imagesNames[i].substr(0, imagesNames[i].find("."))+"_mask_"+dateFormatted+".jpg", mask);
+        SaveImage(mask, SavePath+imagesNames[i].substr(0, imagesNames[i].find("."))+"_mask_",
+                  ".jpg", 
+                  false, 
+                  true);
       }
       // else if(Task == ProgramTask::calibrate_color) {
       //   if (!fs::is_directory(OutputPath) || !fs::exists(OutputPath)) { 
@@ -446,7 +597,7 @@ int main(int argc, char* argv[])
     Mat resultImage;
     // stackedImage.convertTo(resultImage, CV_32F, 1.0/255.0);
     stackedImage.convertTo(resultImage, CV_8U);
-    SaveImage(resultImage, OutputPath+"stacked_"+dateFormatted, ".png", true);
+    SaveImage(resultImage, OutputPath+"stacked_"+dateFormatted, ".jpg", false);
   }
 
   if(VERBOSITY >= 0) {

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.13) #3.13
 
+set(CPU_BASELINE AVX)
 set(CPU_DISPATCH AVX,AVX2)
+set(ENABLE_LTO ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
@@ -14,6 +16,7 @@ set(BUILD_TOOLS OFF)
 set(BUILD_OBJECT_LIBS OFF)
 
 #opencv options
+set(OPENCV_ALGO_HINT_DEFAULT ALGO_HINT_APPROX)
 set(OPENCV_EXTRA_MODULES_PATH "")
 set(OPENCV_GENERATE_PKGCONFIG OFF) #ON
 set(OpenCV_STATIC ON)
@@ -31,9 +34,9 @@ set(WITH_JASPER OFF)
 set(WITH_TIFF OFF)
 set(WITH_WEBP OFF)
 set(WITH_OPENEXR OFF)
-set(WITH_IPP OFF)
+set(WITH_IPP OFF) #OFF
 set(WITH_TBB OFF)
-set(WITH_EIGEN OFF)
+set(WITH_EIGEN OFF) #OFF
 set(WITH_OPENEXR OFF)
 set(WITH_FFMPEG OFF)
 set(WITH_CUDA OFF)
@@ -58,12 +61,14 @@ set(WITH_AVFOUNDATION OFF)
 set(WITH_VA OFF)
 set(WITH_VA_INTEL OFF)
 set(WITH_AVIF OFF)
+set(WITH_ANDROID_MEDIANDK OFF)
+set(WITH_WIN32UI OFF)
 set(VIDEOIO_ENABLE_PLUGINS OFF)
 set(BUILD_opencv_python2 OFF)
 set(BUILD_opencv_python3 OFF)
 set(OPENCV_ENABLE_NONFREE OFF)
 set(OPENCV_FORCE_3RDPARTY_BUILD OFF)
-set(OPENCV_IPP_ENABLE_ALL OFF)
+set(OPENCV_IPP_ENABLE_ALL OFF) #OFF
 set(BUILD_opencv_apps OFF)
 # set(BUILD_opencv_imgcodecs ON) #ON
 set(BUILD_opencv_videoio OFF)
@@ -215,8 +220,8 @@ target_include_directories(cherrypk_pixel_stacker PRIVATE
         )
 
 add_compile_options(
-    "$<$<CONFIG:RELEASE>:-O3 -flto>"
-    "$<$<CONFIG:DEBUG>:-Wall -Wextra>"
+    "$<$<CONFIG:RELEASE>:-Ofast -flto -march=sandybridge -mtune=generic>"
+    "$<$<CONFIG:DEBUG>:-Og -Wall -Wextra>"
 )
 
 target_link_libraries(cherrypk_pixel_stacker 
