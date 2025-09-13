@@ -17,13 +17,13 @@ This is overview of color calibration process relying on histogram matching and 
 ![Calibrate color overview](./resources/calibrate_color_overview.jpg "Calibrate color overview")  
 
 Tests of stack mode have been done with real world images that are provided in [examples] folder.  
-Numbers in the following table were collected from average of 5 program runs for each scene. Program version for stacking tests was (v0.1.2) and computer specification: Ryzen 9 5900X (12c, 24t, 65W), 39.09 GiB RAM (2667 MT/s), kernel Linux 6.16.5-2-cachyos.  
+Numbers in the following table were collected from average of 5 program runs for each scene. Program version for stacking tests was (v0.1.3) and computer specification: Ryzen 9 5900X (12c, 24t, 65W), 39.09 GiB RAM (2667 MT/s), kernel Linux 6.16.5-2-cachyos.  
 | scene | base img index | original mse | mse after processing | original sharpness | stacked sharpness | total time |
 | --- | --- | --- | --- | --- | --- | --- |
-| colorfull_text | 0 | 7.25 | 3.56 | 4980.23 | 9690.08 | 32.72 |  
-| colorfull_text_S20Ultra | 0 | 13.47 | 3.93 | 8484.00 | 12927.92 | 39.12 | 
-| statue | 0 | 27.69 | 7.84 | 43625.90 | 45988.02 | 233.00 |  
-| winter | 4 | 18.83 | 3.69 | 22720.10 | 24859.10 | 460.48 |  
+| colorfull_text | 0 | 7.25 | 3.77 | 4980.23 | 9716.47 | 37.93 |  
+| colorfull_text_S20Ultra | 0 | 13.47 | 3.92 | 8484.00 | 12900.04 | 40.89 | 
+| statue | 0 | 26.00 | 8.64 | 71178.40 | 75858.06 | 166.36 |  
+| winter | 4 | 18.83 | 3.69 | 22715.10 | 24893.56 | 638.90 |  
  
 <p><br>
 Before/After stacking comparison of example scenes.</p>  
