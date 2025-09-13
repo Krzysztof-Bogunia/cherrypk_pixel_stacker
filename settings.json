@@ -1,22 +1,22 @@
 {
     //General program params
-    "task": "stack", //what is the program task //{stack, simple_stack, align, calibrate_color}
+    "task": "stack", //what is the program task //{stack, simple_stack, align, calibrate_color, benchmark}
     "interpolation": 4, //which interpolation algorithm to use (1:Linear, 2:Cubic, 3:Area, 4:Lanchos) //4
-    "erosion_size": 3, //size for expanding mask of bad pixels //1
-    "radicalChangeRatio": 1.3, //mask/prevent values that are changed at least radicalChangeRatio times compared to initial values //1.3
-    "VERBOSITY": 0, //option for debugging
+    "erosion_size": 2, //size for expanding mask of bad pixels //1
+    "radicalChangeRatio": 2.0, //mask/prevent values that are changed at least radicalChangeRatio times compared to initial values //1.3
+    "VERBOSITY": 1, //option for debugging
 
     //Image Alignment Params
-    "base_index": 0, //index of base reference image //0
-    "maxIter": 30, //max number of undistortion iterations //30
-    "n_points": 8000, //initial number of points to detect and compare between images //8000
-    "ratio": 0.65, //how many points to keep for undistortion //0.7
+    "base_index": -1, //index of base reference image //0
+    "maxIter": 50, //max number of undistortion iterations //30
+    "n_points": 50000, //initial number of points to detect and compare between images //8000
+    "ratio": 0.8, //how many points to keep for undistortion //0.7
     "warpAlign": true, //apply warp perspective operation to align images //true
     "warpIter": 40, //max number of secondary align image iterations //40
-    "splitAlignPartsVertical": 8, //how many times to split image (vertically) to align each part independently //8
-    "splitAlignPartsHorizontal": 8, //how many times to split image (horizontally) to align each part independently //8
-    "alpha": 0.90, //how many points to keep for alignment //1.0
-    "checkArea": 0.85, //image comparison area //0.75
+    "splitAlignPartsVertical": 2, //how many times to split image (vertically) to align each part independently //8
+    "splitAlignPartsHorizontal": 2, //how many times to split image (horizontally) to align each part independently //8
+    "alpha": 0.8, //how many points to keep for alignment //1.0
+    "checkArea": 0.75, //image comparison area //0.75
     "alignCenter": false, //keep center of images the same //false
 
     //Image Stacking Params
@@ -26,14 +26,15 @@
     "coef_sharpness": 1.5, //local sharpness weight for total image coeffs //1.0
     "coef_similarity": 1.0, //local similarity to base img weight for total image coeffs //1.0
     "patternN": 200, //number of sharpness checking regions (total=patternN*patternN) //200
-    "patternSize": 5, //size of each sharpness checking region //3
+    "patternSize": 7, //size of each sharpness checking region //7
     "minImgCoef": 0.0, //minimum value to add to each image's coefficients //0.0
-    "comparison_scale": 0.25, //pixel ratio - decrease resolution for calculating some parameters //0.25
+    "comparison_scale": 0.5, //pixel ratio - decrease resolution for calculating some parameters //0.25
+    "discardRatio": 0.2, //how many photos with worst similarity to discard from stacking (increase it when images are not well aligned)
 
     //Color transfer/calibration params
-    "histSize": 65, //number or color values per channel //32 //64
-    "num_dominant_colors": 16, //how many colors to use for alignment 3
-    "find_colors": 20, //how many colors to search for best match //num_dominant_colors*1.5
-    "strength": 1.0, //how much to change/align the color //1.0f
-    "maxChange": 0.15 //limit ratio (original*(1+maxChange)) for max color change //0.1f
+    "histSize": 65, //number or color values per channel //32 //65
+    "num_dominant_colors": 16, //how many colors to use for alignment //16
+    "find_colors": 20, //how many colors to search for best match //num_dominant_colors++
+    "strength": 0.8, //how much to change/align the color //0.8
+    "maxChange": 0.15 //limit ratio (original*(1+maxChange)) for max color change //0.15
 }

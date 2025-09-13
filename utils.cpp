@@ -1,5 +1,3 @@
-#pragma once
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -17,15 +15,13 @@
 #include <valarray>
 #include <random>
 #include <cctype>
-#include <opencv2/imgproc.hpp>
-#include "opencv2/highgui.hpp"
-#include "opencv2/features2d.hpp"
-#include "opencv2/video.hpp"
-#include "opencv2/calib3d.hpp"
 #include <limits>
 #include <unordered_set>
 #include <ctime>
-#include "opencv2/photo.hpp"
+
+#pragma once
+#pragma GCC target ("avx")
+
 
 // Overloaded operators
 //  Override printing vector
@@ -139,7 +135,7 @@ std::vector<std::vector<float>> toVec2D(Json::Value jval)
 
 template<typename T>
 std::valarray<T> toValarray(std::vector<T> vec){
-  std::valarray<T> varr(vec.data(), vec.size()); //std::vector to valarray
+  std::valarray<T> varr(vec.data(), vec.size());
   return varr;
 }
 
@@ -148,7 +144,7 @@ std::valarray<std::valarray<T>> toValarray(std::vector<std::vector<T>> vec){
   std::valarray<std::valarray<T>> varr;
   varr.resize(vec.size());
   for(int i=0;i<vec.size();i++) {
-      std::valarray<T> varr2(vec[i].data(), vec[i].size()); //std::vector to valarray
+      std::valarray<T> varr2(vec[i].data(), vec[i].size());
       varr[i]=varr2;
   }
   return varr;
@@ -204,7 +200,6 @@ cv::Mat toMat(const std::vector<cv::Point2f> &vecPoints2D)
 
 cv::Mat to3dMat(const std::vector<cv::Mat>& vec){
   using namespace cv;
-  int sizes[3] = {(int)vec.size(), vec[0].cols, vec[0].rows};
   cv::Mat matCombined;
   cv::merge(vec, matCombined);
 
@@ -230,6 +225,16 @@ std::vector<std::vector<T>> toVec2D(const cv::Mat& m, T matType=(float)0.0f){
     vec.push_back(vec_row);
   }
   return vec;
+}
+
+template<typename T>
+std::vector<T> flatten(const std::vector<std::vector<T>> &array2D)
+{   
+    std::vector<T> result;
+    for(const auto &v: array2D) {
+        result.insert(result.end(), v.begin(), v.end());
+    }
+    return result;
 }
 
 std::valarray<float> toValarray(const cv::Mat& m){
@@ -322,6 +327,23 @@ std::string to_string(const std::list<cv::Point> &data) {
   return result;
 }
 
+/**
+ * @brief Combine vector of strings into 1 string.
+ * 
+ * @param words input vector of strings to be concatenated
+ * @param separator input separator that will be put between words
+ * @return std::string concatenated words
+ */
+std::string concatenate(const std::vector<std::string> &words, const std::string &separator="") {
+  using namespace std;
+
+  string result = words[0];
+  for (auto w : words) {
+    result = result + separator + w;
+  }
+  return result;
+}
+
 std::vector<std::string> split(std::string s, char delimiter) {
   using namespace std;
 
@@ -329,20 +351,22 @@ std::vector<std::string> split(std::string s, char delimiter) {
   stringstream ss(s);
   vector<string> words;
   while(getline(ss, word, delimiter)){
-      words.push_back(word);
+    words.push_back(word);
+  }
+  if(words.size()==0) {
+    words.push_back(s);
   }
 
   return words;
 }
 
 /// @brief Return N first elements
-/// @tparam T 
 /// @param s vector of type T
 /// @param n number of elements to return
 /// @param offset number of elements to skip
 /// @return vector of same type with n elements
 template<typename T>
-std::vector<T> firstN(const std::vector<T>& vec, int n, int offset=0) {
+std::vector<T> selectFirstN(const std::vector<T>& vec, int n, int offset=0) {
   using namespace std;
 
   int n2 = min(n, (int)vec.size());
@@ -356,13 +380,12 @@ std::vector<T> firstN(const std::vector<T>& vec, int n, int offset=0) {
 }
 
 /// @brief Return N last elements
-/// @tparam T 
 /// @param s vector of type T
 /// @param n number of elements to return
 /// @param offset number of elements to skip
 /// @return vector of same type with n elements
 template<typename T>
-std::vector<T> lastN(const std::vector<T>& vec, int n, int offset=0) {
+std::vector<T> selectLastN(const std::vector<T>& vec, int n, int offset=0) {
   using namespace std;
 
   int n2 = min(n, (int)vec.size());

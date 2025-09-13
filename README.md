@@ -1,19 +1,40 @@
 
 # About:  
-This is my second attempt (first publicly available) at making image stacking program. Project is still in experimental stage of development so it may not always work or produce good results. There is currently a problem with visible borders between pixels from image A and B (I will try to solve that, right now setting parameter "erosion_size" to higher value can help).  
-The goal is to use multiple photos of the same object/scene and create image that combines best features of each photo. Right now this program is maximizing local sharpness of each image region by using pixels from photo that has the highest variance (sharpness estimation method) of pixels in that region. Every pixel of every photo has its sharpness estimated and stacking function uses those values as well as quality of image alignment to calculate pixel's coefficients for final image. Resulting image is basically a type of weighted average of input images.  
+( Project is still in experimental stage of development so it may not always work or produce good results. There is currently a problem with visible borders between pixels from image A and B. I will try to solve that, right now setting parameter "erosion_size" to higher value can help. )  
+The goal of this program is to use multiple photos of the same object/scene and create image that combines best features of each photo. Right stack mode is maximizing local sharpness of each image region by using pixels from photo that has the highest variance (sharpness estimation method) of pixels in that region. Every pixel of every photo has its sharpness estimated and stacking function uses those values as well as quality of image alignment to calculate pixel's coefficients for final image. Resulting image is basically a type of weighted average of input images.  
 
 To get image that has high sharpness for objects that are in different distances from camera user needs to make multiple photos with either moving camera closer and further from target object or change focus settings of camera. It's recommended to use tripod or to hold the camera very still when making series of photos.  
 Arguably the hardest part for the program is to accurately align all images to avoid strange artifacts when blending images like average of 2 different objects, multiple copies of the same object or moving shadows etc. I am still experimenting with making image alignment more accurate but generally the biggest advantage it has over other programs is in my opinion the ability to correct for both camera movement and lens distortion (with various results ...). In other words user is not required to calibrate camera for the program to stack them.  
 
+
+# Examples:  
 At least 2 images are required for stacking. This example shows that final image retains original look and has added sharpness (to regions further away from camera) from next image. Program can try to add more details from input images or retain more look of the reference image, depending on the settings.  
 ![Stacking overview](./resources/stacking_overview.jpg "Stacking overview")  
 
-[*This feature is currently only used for creating color lookup tables (--task calibrate_color) and getting images with target look]  
-Another use case of this program is to create LUT that can later be used by other programs to apply target look. When user selects calibrate_color the program will compare images in ./input and ./target folders (any number of any images), find best match for each input image and sum histogram differences to create color LUT in .cube format (1D and 3D). 
+Another use case of this program is to create LUTs (color lookup tables) that can later be used by other programs to apply target look. When user selects --task calibrate_color the program will compare images in ./input and ./target folders (any number of any images), find best match for each input image and sum histogram differences to create color LUT in .cube format (1D and 3D). 
 In current version algorithm for applying LUT, by this program is simplified and output images are meant to be used as quick preview of created look.  
 This is overview of color calibration process relying on histogram matching and dominant colors.  
 ![Calibrate color overview](./resources/calibrate_color_overview.jpg "Calibrate color overview")  
+
+Tests of stack mode have been done with real world images that are provided in [examples] folder.  
+Numbers in the following table were collected from average of 5 program runs for each scene. Program version for stacking tests was [VERSION] and computer specification: Ryzen 9 5900X (12c, 24t, 65W), 39.09 GiB RAM (2667 MT/s), kernel Linux 6.16.5-2-cachyos.  
+| scene | base img index | original mse | mse after processing | original sharpness | stacked sharpness | total time |
+| --- | --- | --- | --- | --- | --- | --- |
+| colorfull_text | 0 | 7.25 | 3.56 | 4980.23 | 9690.08 | 32.72 |  
+| colorfull_text_S20Ultra | 0 | 13.47 | 3.93 | 8484.00 | 12927.92 | 39.12 | 
+| statue | 0 | 27.69 | 7.84 | 43625.90 | 45988.02 | 233.00 |  
+| winter | 4 | 18.83 | 3.69 | 22720.10 | 24859.10 | 460.48 |  
+ 
+<p><br>
+Before/After stacking comparison of example scenes.</p>  
+
+|     BEFORE      |      AFTER     |
+| :-------------: | :------------: |
+| ![colorfull_text_original0](./examples/images/stacking/colorfull_text/img01.jpg)  colorfull_text_original0 | ![colorfull_text_stacked](./examples/images/results_stacking/colorfull_text/stacked_colorfull_text.jpg)  colorfull_text_stacked |
+| ![colorfull_text_S20Ultra_original0](./examples/images/stacking/colorfull_text_S20Ultra/img01.jpg)  colorfull_text_S20Ultra_original0 | ![colorfull_text_S20Ultra_stacked](./examples/images/results_stacking/colorfull_text_S20Ultra/stacked_colorfull_text_S20Ultra.jpg)  colorfull_text_S20Ultra_stacked |
+| ![statue_original0](./examples/images/stacking/statue/img01.jpg)  statue_original0 | ![statue_stacked](./examples/images/results_stacking/statue/stacked_statue.jpg)  statue_stacked |
+| ![colorfull_text_original5](./examples/images/stacking/winter/img05.jpg)  colorfull_text_original5 | ![winter_stacked](./examples/images/results_stacking/winter/stacked_winter.jpg)  winter_stacked |
+
 
 
 # Future development plans:  
@@ -80,12 +101,12 @@ If no value is specified that default will be used.
 parameter | default value | description
 --- | --- | ---
 --task | stack | What is the program task {stack, simple_stack, align, calibrate_color}  
---images | ./input | Folder containing input images (.jpg format) that are going to be aligned and stacked
---target | ./target/ | Folder containing input images (.jpg format) that are going to be used as target for calibrate color  
---settings | ./settings.json | File containing program settings to use when processing images
---aligned | ./aligned | Folder for outputting aligned/undistorted input images (useful for comparisons or further processing)
---masks | ./masks | Folder for outputting created masks of input images (useful for comparisons or further processing)
---output | ./output | Folder for outputting program result  
+--images | ./input | Folder containing input images (.jpg format) that are going to be aligned and stacked (read)  
+--target | ./target/ | Folder containing input images (.jpg format) that are going to be used as target for calibrate color (read)  
+--settings | ./settings.json | File containing program settings to use when processing images (read)
+--aligned | ./aligned | Folder for outputting aligned/undistorted input images (useful for comparisons or further processing) (write)
+--masks | ./masks | Folder for outputting created masks of input images (useful for comparisons or further processing) (write)
+--output | ./output | Folder for outputting program result (write)  
 
 ### Recommended image processing settings to tweak:  
 Changing those parameters requires to manually modify values in **settings.json** file using text editor.  
@@ -118,6 +139,7 @@ Image Stacking Params:
 "comparison_scale"| 0.25 | (0.1; 1.0) | pixel ratio - decrease resolution for calculating some parameters  
 "blur_size"| 5 | (0; N) | adds smoothing to coefficients (increase it to hide switching pixel regions between images)  
 "upscale" | 1.0 | (1.0; N) | if value is greater than 1.0 then final image resolution will be upscaled (upscaling input images and stacking them). Higher values increase details, but memory usage for processing and storage is also increased.  
+"discardRatio"| 0.2 | (0; 1.0) | how many photos with worst similarity to discard from stacking (increase it when images are not well aligned)  
 Color transfer/calibration params:  
 "histSize"| 65 | (8; 256) | number or color values per channel  
 "num_dominant_colors"| 16 | (3; 128) | how many colors to use for alignment  
@@ -130,6 +152,7 @@ Color transfer/calibration params:
 Program should work on other linux distributions, but it has been tested on the following:  
 
 -Ubuntu 22.04  
+-CachyOS  
 
 
 # External dependencies:  
