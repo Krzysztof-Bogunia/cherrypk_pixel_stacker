@@ -180,6 +180,7 @@ int main(int argc, char* argv[])
   int cameraHeight = newCameraResolution.height;
   cout << "Using image base: number="<<base_index<<" | name="<<imagesNames[base_index]<<endl;
 
+  //TODO: add loading masks
   //match resolution to base image
   if((Task == ProgramTask::stack) || (Task == ProgramTask::simple_stack) || (Task == ProgramTask::align)) {
     vector<cv::Mat> images2(images.size());
@@ -239,8 +240,8 @@ int main(int argc, char* argv[])
       }
     }
     if(VERBOSITY >= 0) { 
-      double average1 = toValarray(mseList_unprocessed).sum()/mseList_unprocessed.size();
-      double average2 = toValarray(mseList).sum()/mseList.size();
+      double average1 = toValarray(remove(mseList_unprocessed, base_index)).sum() / (mseList_unprocessed.size()-1);
+      double average2 = toValarray(remove(mseList, base_index)).sum() / (mseList.size()-1);
       cout<<"Input images had misalignment error before prosessing: mse average = "<<average1<<" | mse = "<<mseList_unprocessed<<endl; 
       cout<<"Images were undistorted with result: mse average = "<<average2<<" | mse = "<<mseList<<endl; 
     }
@@ -289,7 +290,7 @@ int main(int argc, char* argv[])
       }
     }
     if((VERBOSITY >= 0) && realigned2) { 
-      double average = toValarray(mseList).sum()/mseList.size();
+      double average = toValarray(remove(mseList, base_index)).sum() / (mseList.size()-1);
       cout<<"Images were re-aligned after upscaling with result: mse average = "<<average<<" | mse of valid(masked) regions = "<<mseList<<endl; 
     }
   }
@@ -360,7 +361,7 @@ int main(int argc, char* argv[])
       }
     }
     if((VERBOSITY >= 0) && realigned) { 
-      double average = toValarray(mseList).sum()/mseList.size();
+      double average = toValarray(remove(mseList, base_index)).sum() / (mseList.size()-1);
       cout<<"Images were split and re-aligned with result: mse average = "<<average<<" | mse of valid(masked) regions = "<<mseList<<endl; 
     }
   }
@@ -474,7 +475,7 @@ int main(int argc, char* argv[])
       mseList[i] = mse;
     }
     if((VERBOSITY >= 0)) { 
-      double average = toValarray(mseList).sum()/mseList.size();
+      double average = toValarray(remove(mseList, base_index)).sum() / (mseList.size()-1);
       cout<<"Images were color corrected with result: mse average = "<<average<<" | mse of valid(masked) regions = "<<mseList<<endl; 
     }
   }
@@ -587,9 +588,9 @@ int main(int argc, char* argv[])
     auto sharpnessRefImg = sharpnessOfRegions(imagesForProcessing[base_index], 4, 64);
     auto sharpnessPerRegion = sharpnessOfRegions(MatchResolution(stackedImage, imagesForProcessing[base_index].size(), INTER_NEAREST), 4, 64);
     valarray<float> sharpness = toValarray(sharpnessRefImg);
-    float meanSharp = sharpness.sum() / (sharpness.size());
+    float meanSharp = remove(sharpness, base_index).sum() / (sharpness.size()-1);
     valarray<float> sharpness2 = toValarray(sharpnessPerRegion);
-    float meanSharp2 = sharpness2.sum() / (sharpness2.size());
+    float meanSharp2 = remove(sharpness2, base_index).sum() / (sharpness2.size()-1);
     if(VERBOSITY >= 0) {
       cout<<"Average sharpness of base image: "<< meanSharp<<endl;
       cout<<"Average sharpness of stacked image: "<< meanSharp2<<endl;

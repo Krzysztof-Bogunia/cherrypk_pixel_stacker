@@ -29,7 +29,7 @@
     "patternSize": 7, //size of each sharpness checking region //7
     "minImgCoef": 0.0, //minimum value to add to each image's coefficients //0.0
     "comparison_scale": 0.5, //pixel ratio - decrease resolution for calculating some parameters //0.25
-    "discardRatio": 0.2, //how many photos with worst similarity to discard from stacking (increase it when images ale not well aligned)
+    "discardRatio": 0.2, //how many photos with worst similarity to discard from stacking (increase it when images are not well aligned)
 
     //Color transfer/calibration params
     "histSize": 65, //number or color values per channel //32 //65

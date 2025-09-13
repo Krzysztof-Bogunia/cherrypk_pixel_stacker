@@ -2766,11 +2766,19 @@ void remove(std::vector<T> &vec, const std::vector<int> &ind) {
  * @param vec input/output vector
  * @param ind index for removal
  */
- template <typename T>
- void remove(std::vector<T> &vec, int ind) {
+//  template <typename T>
+template <template <typename> class Container, 
+          typename T1>
+Container<T1> remove(Container<T1> &vec, int ind) {
   using namespace std;
-  vec.erase(vec.begin() + ind);
- }
+
+  Container<T1> vec2(vec.size()-1);
+  std::copy(std::begin(vec), std::begin(vec)+ind, std::begin(vec2));
+  if(ind < (vec.size()-1)) {
+    std::copy(std::begin(vec)+ind+1, std::end(vec), std::begin(vec2)+ind);
+  }
+  return vec2;
+}
 
  /**
   * @brief Function to swap data between selected positions.
@@ -3878,14 +3886,18 @@ cv::Mat stackImages( const std::vector<cv::Mat>& images, int base_index=0, const
       vector<Mat> _masks;
       vector<float> _mseList;
       auto indices = Argsort(msePerImage);
+      int size_limit = (int)( (float)(images2.size()) - sparams.discardRatio * (float)(images2.size()) );
       for (int i = 0; i < images2.size(); i++) {
         if( (i == base_index) || 
             (i < 2) ||
-            (i < (int)( (float)(images2.size()) - sparams.discardRatio * (float)(images2.size()) )) ) {
+            (i < size_limit) ) {
           _imagesForProcessing.push_back(images2[indices[i]]);
           _masks.push_back(masks2[indices[i]]);
           _mseList.push_back(msePerImage[indices[i]]);
         }
+      }
+      if(base_index >= _imagesForProcessing.size()) {
+        base_index = _imagesForProcessing.size()-1;
       }
       images2 = _imagesForProcessing;
       masks2 = _masks;
@@ -4609,26 +4621,26 @@ int benchmark_processing() {
 
   auto[errorMSE_stacked, psnr_stacked] = CompareMetrics(refImage, stackedImage, false);
   start = std::chrono::high_resolution_clock::now();
-  auto sharpnessRefImg = sharpnessOfRegions(refImage, 4, 64);
-  auto sharpnessBaseImg = sharpnessOfRegions(imagesForProcessing[0], 4, 64);
+  // auto sharpnessRefImg = sharpnessOfRegions(refImage, 4, 64);
+  auto sharpnessBaseImg = sharpnessOfRegions(imagesForProcessing[base_index], 4, 64);
   auto sharpnessPerRegion = sharpnessOfRegions(MatchResolution(stackedImage, imagesForProcessing[0].size(), INTER_NEAREST), 4, 64);
   stop = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   std::cout << "BENCHMARK: estimating sharpness of image"<< " | elapsed time: "<< MicroToSeconds(duration.count()) << " [s]" << std::endl;
-  valarray<float> sharpnessRef = toValarray(sharpnessRefImg);
-  float meanSharpRef = sharpnessRef.sum() / (sharpnessRef.size());
+  // valarray<float> sharpnessRef = toValarray(sharpnessRefImg);
+  // float meanSharpRef = sharpnessRef.sum() / (sharpnessRef.size());
   valarray<float> sharpness = toValarray(sharpnessBaseImg);
-  float meanSharp = sharpness.sum() / (sharpness.size());
+  float meanSharp = remove(sharpness, base_index).sum() / (sharpness.size()-1);
   valarray<float> sharpness2 = toValarray(sharpnessPerRegion);
-  float meanSharp2 = sharpness2.sum() / (sharpness2.size());
+  float meanSharp2 = remove(sharpness2, base_index).sum() / (sharpness2.size()-1);
   auto stop_benchmark = std::chrono::high_resolution_clock::now();
   auto duration_benchmark = std::chrono::duration_cast<std::chrono::microseconds>(stop_benchmark - start_benchmark);
   if(VERBOSITY >= 0) {
-    cout<<"BENCHMARK: Input images had misalignment error before prosessing - mse average = "<< mseList_unprocessed.sum()/mseList_unprocessed.size()
+    cout<<"BENCHMARK: Input images had misalignment error before prosessing - mse average = "<< remove(mseList_unprocessed, base_index).sum()/(mseList_unprocessed.size()-1)
         << " | mse per image = " << toVec(mseList_unprocessed) << endl; 
-    cout<<"BENCHMARK: Images for stacking were undistorted with result - mse average = "<< mseList.sum()/mseList.size()
+    cout<<"BENCHMARK: Images for stacking were undistorted with result - mse average = "<< remove(mseList, base_index).sum()/(mseList.size()-1)
         << " | mse per image = " << toVec(mseList) << endl;
-    cout<<"BENCHMARK: Average sharpness of reference image = "<< meanSharpRef<<endl;
+    // cout<<"BENCHMARK: Average sharpness of reference image = "<< meanSharpRef<<endl;
     cout<<"BENCHMARK: Average sharpness of base image = "<< meanSharp<<endl;
     cout<<"BENCHMARK: Average sharpness of stacked image = "<< meanSharp2<<endl;
     cout<<"BENCHMARK: Similarity to reference of stacked image: mse="<< errorMSE_stacked<< " | psnr="<< psnr_stacked<< endl;
