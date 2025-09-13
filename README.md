@@ -17,7 +17,7 @@ This is overview of color calibration process relying on histogram matching and 
 ![Calibrate color overview](./resources/calibrate_color_overview.jpg "Calibrate color overview")  
 
 Tests of stack mode have been done with real world images that are provided in [examples] folder.  
-Numbers in the following table were collected from average of 5 program runs for each scene. Program version for stacking tests was [VERSION] and computer specification: Ryzen 9 5900X (12c, 24t, 65W), 39.09 GiB RAM (2667 MT/s), kernel Linux 6.16.5-2-cachyos.  
+Numbers in the following table were collected from average of 5 program runs for each scene. Program version for stacking tests was (v0.1.2) and computer specification: Ryzen 9 5900X (12c, 24t, 65W), 39.09 GiB RAM (2667 MT/s), kernel Linux 6.16.5-2-cachyos.  
 | scene | base img index | original mse | mse after processing | original sharpness | stacked sharpness | total time |
 | --- | --- | --- | --- | --- | --- | --- |
 | colorfull_text | 0 | 7.25 | 3.56 | 4980.23 | 9690.08 | 32.72 |  
