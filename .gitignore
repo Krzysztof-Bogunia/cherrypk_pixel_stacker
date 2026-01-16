@@ -1,1 +1,10 @@
-/examples
+masks/*
+output/*
+target/*
+aligned/*
+*.jpg
+cherrypk_pixel_stacker
+.cache/*
+build*
+.vscode/
+
