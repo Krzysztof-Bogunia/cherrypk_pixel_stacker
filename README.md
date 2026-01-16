@@ -160,8 +160,6 @@ This project relies on external software components for some functionality.
 [libInterpolate](https://github.com/CD3/libInterpolate.git) with MIT License. Used for interpolating parameters in image calibration and alignment functions  
 [jsoncpp](https://github.com/open-source-parsers/jsoncpp.git) with MIT license. Used for loading and saving data in json format  
 [opencv](https://github.com/opencv/opencv) with Apache License 2.0. Used for many image processing operations including loading/saving images, alignment, calibration and undistortion  
-
-If you are building project from source then you are also required to have Boost and Eigen packages installed because they are required by some dependencies.  
 OpenMP is additional dependency which provides multithreading support.  
 
 
@@ -170,7 +168,7 @@ By default project is configured to compile program with static versions of depe
 
 On Ubuntu the build dependencies can be installed by using commands:  
 ```console
-sudo apt install build-essential cmake git libboost-all-dev libeigen3-dev
+sudo apt install build-essential cmake git
 ```
 
 Download the project to current directory:  
